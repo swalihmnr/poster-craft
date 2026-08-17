@@ -9,4 +9,5 @@ import { connectDB } from '../src/config/database.js';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   await connectDB();
   return app(req, res);
+  
 }
