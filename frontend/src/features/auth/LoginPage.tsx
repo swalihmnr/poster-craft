@@ -1,23 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { api } from '../../services/api';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { Sparkles, Mail, Lock, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setFieldErrors({});
 
     try {
       const data = await api.login({ email, password });
@@ -28,6 +31,13 @@ export const LoginPage: React.FC = () => {
         navigate('/programs');
       }
     } catch (err: any) {
+      if (err.details && Array.isArray(err.details)) {
+        const errorsObj: Record<string, string> = {};
+        err.details.forEach((d: any) => {
+          if (d.field) errorsObj[d.field] = d.message;
+        });
+        setFieldErrors(errorsObj);
+      }
       setError(err.message || 'Invalid email or password');
     } finally {
       setIsLoading(false);
@@ -65,11 +75,11 @@ export const LoginPage: React.FC = () => {
           <div className="inline-flex p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mb-3">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-extrabold font-heading text-white">Welcome Back</h2>
+          <h2 className="text-2xl font-extrabold font-heading text-white">Admin Authentication</h2>
           <p className="text-xs text-slate-400 mt-1">Sign in to access your PosterCraft workspace</p>
         </div>
 
-        {error && (
+        {error && Object.keys(fieldErrors).length === 0 && (
           <div className="mb-6 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
             <span>{error}</span>
@@ -107,32 +117,49 @@ export const LoginPage: React.FC = () => {
 
         <div className="flex items-center gap-3 my-5">
           <div className="h-px bg-slate-800 flex-1" />
-          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Or continue with password</span>
+          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Or continue with email</span>
           <div className="h-px bg-slate-800 flex-1" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form noValidate onSubmit={handlePasswordSubmit} className="space-y-4">
           <Input
             label="Email Address"
             type="email"
-            placeholder="admin@postercreator.com"
+            placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             leftIcon={<Mail className="w-4 h-4" />}
-            required
+            error={fieldErrors.email}
           />
 
           <Input
             label="Password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             leftIcon={<Lock className="w-4 h-4" />}
-            required
+            rightIcon={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-slate-400 hover:text-slate-200 focus:outline-none transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            }
+            error={fieldErrors.password}
           />
 
-          <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading} rightIcon={<ArrowRight className="w-4 h-4" />}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="w-full"
+            isLoading={isLoading}
+            rightIcon={<ArrowRight className="w-4 h-4" />}
+          >
             Sign In
           </Button>
         </form>

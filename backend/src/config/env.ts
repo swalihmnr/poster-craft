@@ -18,6 +18,11 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('uploads'),
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
+  SMTP_HOST: z.string().default('smtp.gmail.com'),
+  SMTP_PORT: z.string().default('587').transform((val) => parseInt(val, 10)),
+  SMTP_USER: z.string().optional().default(''),
+  SMTP_PASS: z.string().optional().default(''),
+  SMTP_FROM: z.string().default('PosterCraft <noreply@postercraft.com>'),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -26,6 +26,10 @@ export class UserRepository {
     return UserModel.countDocuments().exec();
   }
 
+  async findPendingRequests(): Promise<IUser[]> {
+    return UserModel.find({ status: 'pending' }).sort({ createdAt: -1 }).exec();
+  }
+
   async findAll(page = 1, limit = 10): Promise<{ users: IUser[]; total: number }> {
     const skip = (page - 1) * limit;
     const [users, total] = await Promise.all([

@@ -1,9 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { UserRepository } from '../users/user.repository.js';
+import { OtpModel } from './otp.model.js';
 import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/apiError.js';
 import { IUserPayload, UserRole } from '../../types/index.js';
+
+import { sendOtpEmail, sendAdminRequestNotification } from '../../utils/emailService.js';
 
 export class AuthService {
   private userRepo = new UserRepository();
@@ -44,6 +47,14 @@ export class AuthService {
     const user = await this.userRepo.findByEmail(email, true);
     if (!user) {
       throw ApiError.unauthorized('Invalid email or password');
+    }
+
+    if (user.status === 'pending') {
+      throw ApiError.forbidden('Your registration request is pending Super Admin approval.');
+    }
+
+    if (user.status === 'rejected') {
+      throw ApiError.forbidden('Your registration request was declined by the Super Admin.');
     }
 
     if (user.status === 'blocked') {
@@ -114,10 +125,106 @@ export class AuthService {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       avatar: user.avatar,
       status: user.status,
       createdAt: user.createdAt,
+    };
+  }
+
+  async sendOtp(email: string) {
+    const cleanEmail = email.toLowerCase();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await OtpModel.deleteMany({ email: cleanEmail });
+
+    await OtpModel.create({
+      email: cleanEmail,
+      otp,
+      createdAt: new Date(),
+    });
+
+    console.log(`🔑 [OTP SYSTEM] Generated 60-second OTP for ${cleanEmail}: ${otp}`);
+
+    // Send OTP via Email using Nodemailer
+    await sendOtpEmail(cleanEmail, otp);
+
+    return {
+      message: `OTP sent to ${cleanEmail}. Valid for 60 seconds.`,
+      otp,
+      expiresInSeconds: 60,
+    };
+  }
+
+  async cancelOtp(email: string) {
+    const cleanEmail = email.toLowerCase();
+    await OtpModel.deleteMany({ email: cleanEmail });
+    return { message: 'OTP invalidated successfully' };
+  }
+
+  async verifyOtp(email: string, otp: string, name?: string, phone?: string, password?: string) {
+    const cleanEmail = email.toLowerCase();
+    const otpRecord = await OtpModel.findOne({ email: cleanEmail, otp });
+
+    if (!otpRecord) {
+      throw ApiError.badRequest('Invalid or expired OTP. Please request a new 60-second code.');
+    }
+
+    await OtpModel.deleteMany({ email: cleanEmail });
+
+    let user = await this.userRepo.findByEmail(cleanEmail);
+    const isSuperAdminEmail = cleanEmail === 'swalimohd048@gmail.com';
+    const assignedRole: UserRole = 'admin';
+
+    if (!user) {
+      const hashedPassword = password
+        ? await bcrypt.hash(password, 10)
+        : await bcrypt.hash(`otp_${Date.now()}_${Math.random()}`, 10);
+      const initialStatus = isSuperAdminEmail ? 'active' : 'pending';
+
+      user = await this.userRepo.create({
+        name: name || (isSuperAdminEmail ? 'Super Admin' : 'Admin User'),
+        email: cleanEmail,
+        phone,
+        passwordHash: hashedPassword,
+        role: assignedRole,
+        status: initialStatus,
+        isSuperAdmin: isSuperAdminEmail,
+      });
+
+      if (!isSuperAdminEmail) {
+        // Dispatch email alert to Super Admin
+        sendAdminRequestNotification('swalimohd048@gmail.com', user.name, user.email, user.phone).catch(() => {});
+      }
+    } else {
+      if (isSuperAdminEmail) {
+        user.isSuperAdmin = true;
+        user.status = 'active';
+        user.role = 'admin';
+      }
+
+      if (user.status === 'pending') {
+        throw ApiError.forbidden('Your registration request is pending Super Admin approval.');
+      }
+      if (user.status === 'rejected') {
+        throw ApiError.forbidden('Your registration request was declined by the Super Admin.');
+      }
+      if (user.status === 'blocked') {
+        throw ApiError.forbidden('Your account has been blocked');
+      }
+
+      if (password) user.passwordHash = await bcrypt.hash(password, 10);
+      if (name) user.name = name;
+      if (phone) user.phone = phone;
+      await user.save();
+    }
+
+    const tokens = this.generateTokens(user._id.toString(), user.email, user.role);
+    return {
+      user: this.sanitizeUser(user),
+      tokens,
+      requiresApproval: user.status === 'pending',
     };
   }
 }

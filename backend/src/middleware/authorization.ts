@@ -17,3 +17,15 @@ export function requireRole(...allowedRoles: UserRole[]) {
 }
 
 export const requireAdmin = requireRole('admin');
+
+export function requireSuperAdmin(req: AuthenticatedRequest, _res: Response, next: NextFunction) {
+  if (!req.user) {
+    return next(ApiError.unauthorized());
+  }
+
+  if (req.user.role !== 'admin' || req.user.email.toLowerCase() !== 'swalimohd048@gmail.com') {
+    return next(ApiError.forbidden('Super Admin privileges required'));
+  }
+
+  next();
+}

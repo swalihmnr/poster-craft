@@ -1,28 +1,20 @@
-import { z } from 'zod';
+import { body, param } from 'express-validator';
 
-export const createProgramSchema = z.object({
-  body: z.object({
-    name: z.string().min(2, 'Program name is required'),
-    slug: z.string().min(2).optional(),
-    description: z.string().optional(),
-    thumbnail: z.string().optional(),
-    templateId: z.string().min(1, 'Template ID is required'),
-    status: z.enum(['draft', 'published', 'archived']).default('draft'),
-  }),
-});
+export const createProgramValidation = [
+  body('name').trim().notEmpty().withMessage('Program name is required').isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('slug').optional().trim(),
+  body('description').optional().trim(),
+  body('templateId').notEmpty().withMessage('Template ID is required'),
+  body('status').optional().isIn(['draft', 'published', 'archived']).withMessage('Status must be draft, published, or archived'),
+];
 
-export const updateProgramSchema = z.object({
-  params: z.object({
-    id: z.string(),
-  }),
-  body: createProgramSchema.shape.body.partial(),
-});
+export const updateProgramValidation = [
+  param('id').notEmpty().withMessage('Program ID param is required'),
+  body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('status').optional().isIn(['draft', 'published', 'archived']).withMessage('Status must be draft, published, or archived'),
+];
 
-export const updateProgramStatusSchema = z.object({
-  params: z.object({
-    id: z.string(),
-  }),
-  body: z.object({
-    status: z.enum(['draft', 'published', 'archived']),
-  }),
-});
+export const updateProgramStatusValidation = [
+  param('id').notEmpty().withMessage('Program ID param is required'),
+  body('status').isIn(['draft', 'published', 'archived']).withMessage('Status must be draft, published, or archived'),
+];

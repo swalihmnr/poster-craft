@@ -85,4 +85,35 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async sendOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+      const result = await authService.sendOtp(email);
+      return sendSuccess(res, result, 200, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async cancelOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+      const result = await authService.cancelOtp(email);
+      return sendSuccess(res, result, 200, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifyOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, otp, name, phone, password } = req.body;
+      const { user, tokens } = await authService.verifyOtp(email, otp, name, phone, password);
+      res.cookie('refreshToken', tokens.refreshToken, COOKIE_OPTIONS);
+      return sendSuccess(res, { user, accessToken: tokens.accessToken }, 200, 'OTP verified successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

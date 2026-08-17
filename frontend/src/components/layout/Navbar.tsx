@@ -106,7 +106,7 @@ export const Navbar: React.FC = () => {
                       {user.name === 'Super Admin' ? 'PosterCraft Admin' : user.name}
                     </span>
                     <span className="block text-[10px] uppercase font-semibold text-indigo-400">
-                      {user.role}
+                      {user.isSuperAdmin || user.email?.toLowerCase() === 'swalimohd048@gmail.com' ? 'Super Admin' : user.role}
                     </span>
                   </div>
                 </div>
@@ -115,15 +115,7 @@ export const Navbar: React.FC = () => {
                   <LogOut className="w-4 h-4 text-slate-400 hover:text-red-400" />
                 </Button>
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link to="/login">
-                  <Button variant="secondary" size="sm" leftIcon={<UserIcon className="w-3.5 h-3.5 text-indigo-400" />}>
-                    Admin Login
-                  </Button>
-                </Link>
-              </div>
-            )}
+            ) : null}
           </div>
 
           {/* Mobile Menu Button */}
@@ -201,13 +193,7 @@ export const Navbar: React.FC = () => {
                   Log Out
                 </Button>
               </div>
-            ) : (
-              <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="secondary" size="sm" className="w-full">
-                  Admin Login
-                </Button>
-              </Link>
-            )}
+            ) : null}
           </div>
         </div>
       )}

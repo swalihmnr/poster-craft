@@ -14,6 +14,7 @@ import templateRoutes from './modules/templates/template.routes.js';
 import assetRoutes from './modules/assets/asset.routes.js';
 import posterRoutes from './modules/posters/poster.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
+import userRoutes from './modules/users/user.routes.js';
 
 export const app = express();
 
@@ -72,6 +73,7 @@ app.use(API_PREFIX, templateRoutes);
 app.use(`${API_PREFIX}/assets`, assetRoutes);
 app.use(`${API_PREFIX}/posters`, posterRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/users`, userRoutes);
 
 // Fallback 404 handler
 app.use((req: Request, res: Response) => {

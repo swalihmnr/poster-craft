@@ -5,6 +5,7 @@ import { api, setAccessToken } from '../../services/api';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
   login: (token: string, userData: User) => void;
   logout: () => Promise<void>;
   registerUser: (payload: { name: string; email: string; password: string; role?: string }) => Promise<void>;
@@ -53,7 +54,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, registerUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        logout,
+        registerUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

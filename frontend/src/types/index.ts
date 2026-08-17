@@ -1,12 +1,15 @@
 export type UserRole = 'user' | 'admin';
 
 export interface User {
-  id: string;
+  id?: string;
+  _id?: string;
   name: string;
   email: string;
+  phone?: string;
   role: UserRole;
   avatar?: string;
-  status: 'active' | 'blocked';
+  status: 'active' | 'pending' | 'rejected' | 'blocked';
+  isSuperAdmin?: boolean;
   createdAt?: string;
 }
 

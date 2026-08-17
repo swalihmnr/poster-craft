@@ -93,16 +93,25 @@ export const AdminTemplateEditorPage: React.FC = () => {
     setCurrentTemplate({ ...currentTemplate, layers: updatedLayers });
   };
 
-  // --- Interactive Canvas Mouse Events (Drag-to-Move, Drag-to-Resize & Drag-to-Rotate) ---
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // --- Interactive Canvas Mouse & Touch Events (Drag-to-Move, Drag-to-Resize & Drag-to-Rotate) ---
+  const handleCanvasPointerDown = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || !currentTemplate || !selectedLayer) return;
+
+    let clientX, clientY;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
 
     const rect = canvasRef.current.getBoundingClientRect();
     const scaleX = currentTemplate.width / rect.width;
     const scaleY = currentTemplate.height / rect.height;
 
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
+    const mouseX = (clientX - rect.left) * scaleX;
+    const mouseY = (clientY - rect.top) * scaleY;
 
     // Center of current selected layer
     const centerX = selectedLayer.x + selectedLayer.width / 2;
@@ -123,9 +132,9 @@ export const AdminTemplateEditorPage: React.FC = () => {
     const cornerY = selectedLayer.y + selectedLayer.height;
     const distToCorner = Math.hypot(unrotMouseX - cornerX, unrotMouseY - cornerY);
 
-    if (distToRot < 40) {
+    if (distToRot < 60) {
       setIsRotating(true);
-    } else if (distToCorner < 45) {
+    } else if (distToCorner < 65) {
       setIsResizing(true);
       setDragStart({
         x: mouseX,
@@ -134,10 +143,10 @@ export const AdminTemplateEditorPage: React.FC = () => {
         initialH: selectedLayer.height,
       });
     } else if (
-      unrotMouseX >= selectedLayer.x - 20 &&
-      unrotMouseX <= selectedLayer.x + selectedLayer.width + 20 &&
-      unrotMouseY >= selectedLayer.y - 20 &&
-      unrotMouseY <= selectedLayer.y + selectedLayer.height + 20
+      unrotMouseX >= selectedLayer.x - 30 &&
+      unrotMouseX <= selectedLayer.x + selectedLayer.width + 30 &&
+      unrotMouseY >= selectedLayer.y - 30 &&
+      unrotMouseY <= selectedLayer.y + selectedLayer.height + 30
     ) {
       setIsDragging(true);
       setDragStart({
@@ -168,15 +177,31 @@ export const AdminTemplateEditorPage: React.FC = () => {
     }
   };
 
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleCanvasPointerMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || !currentTemplate || !selectedLayer) return;
+
+    if (isRotating || isResizing || isDragging) {
+      // Prevent scrolling while dragging on touch devices
+      if ('touches' in e && e.cancelable) {
+        e.preventDefault();
+      }
+    }
+
+    let clientX, clientY;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
 
     const rect = canvasRef.current.getBoundingClientRect();
     const scaleX = currentTemplate.width / rect.width;
     const scaleY = currentTemplate.height / rect.height;
 
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
+    const mouseX = (clientX - rect.left) * scaleX;
+    const mouseY = (clientY - rect.top) * scaleY;
 
     if (isRotating) {
       const centerX = selectedLayer.x + selectedLayer.width / 2;
@@ -202,7 +227,7 @@ export const AdminTemplateEditorPage: React.FC = () => {
     }
   };
 
-  const handleCanvasMouseUp = () => {
+  const handleCanvasPointerUp = () => {
     setIsDragging(false);
     setIsResizing(false);
     setIsRotating(false);
@@ -936,11 +961,15 @@ export const AdminTemplateEditorPage: React.FC = () => {
             <div className="relative max-w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-2xl">
               <canvas
                 ref={canvasRef}
-                onMouseDown={handleCanvasMouseDown}
-                onMouseMove={handleCanvasMouseMove}
-                onMouseUp={handleCanvasMouseUp}
-                onMouseLeave={handleCanvasMouseUp}
-                className="max-w-full max-h-[550px] w-auto h-auto object-contain rounded cursor-crosshair select-none"
+                onMouseDown={handleCanvasPointerDown}
+                onMouseMove={handleCanvasPointerMove}
+                onMouseUp={handleCanvasPointerUp}
+                onMouseLeave={handleCanvasPointerUp}
+                onTouchStart={handleCanvasPointerDown}
+                onTouchMove={handleCanvasPointerMove}
+                onTouchEnd={handleCanvasPointerUp}
+                onTouchCancel={handleCanvasPointerUp}
+                className="max-w-full max-h-[550px] w-auto h-auto object-contain rounded cursor-crosshair select-none touch-none"
               />
             </div>
           </div>
@@ -1172,12 +1201,25 @@ export const AdminTemplateEditorPage: React.FC = () => {
                       value={selectedLayer.style?.fontSize || 48}
                       onChange={(e) => updateSelectedLayerStyle({ fontSize: parseInt(e.target.value) || 24 })}
                     />
-                    <Input
-                      label="Text Color (Hex)"
-                      type="text"
-                      value={selectedLayer.style?.color || '#ffffff'}
-                      onChange={(e) => updateSelectedLayerStyle({ color: e.target.value })}
-                    />
+                    <div>
+                      <label className="block text-[10px] font-semibold uppercase text-slate-400 mb-1">
+                        Text Color (Hex)
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={selectedLayer.style?.color || '#ffffff'}
+                          onChange={(e) => updateSelectedLayerStyle({ color: e.target.value })}
+                          className="w-8 h-8 rounded border border-slate-800 bg-slate-900 cursor-pointer shrink-0"
+                        />
+                        <input
+                          type="text"
+                          value={selectedLayer.style?.color || '#ffffff'}
+                          onChange={(e) => updateSelectedLayerStyle({ color: e.target.value })}
+                          className="w-full bg-slate-900 text-slate-100 text-[11px] rounded-lg p-2 border border-slate-800 font-mono"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-1">

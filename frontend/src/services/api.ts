@@ -19,6 +19,36 @@ export function getAccessToken(): string | null {
   return accessTokenMemory;
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshToken(): Promise<boolean> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.data?.accessToken) {
+        setAccessToken(data.data.accessToken);
+        return true;
+      }
+    } catch (err) {
+      console.error('Silent refresh failed:', err);
+    } finally {
+      refreshPromise = null;
+    }
+    setAccessToken(null);
+    return false;
+  })();
+
+  return refreshPromise;
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
@@ -28,59 +58,62 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Content-Type'] = 'application/json';
   }
 
+  const publicAuthEndpoints = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/google',
+    '/auth/send-otp',
+    '/auth/verify-otp',
+    '/auth/cancel-otp',
+    '/auth/refresh',
+  ];
+  const isPublicAuthRoute = publicAuthEndpoints.some((p) => endpoint.startsWith(p));
+
+  // If access token is not in memory and calling a protected/me endpoint, attempt silent refresh first
+  if (!accessTokenMemory && !isPublicAuthRoute) {
+    await refreshToken();
+  }
+
   if (accessTokenMemory) {
     headers['Authorization'] = `Bearer ${accessTokenMemory}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  let response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
-    credentials: 'include', // include cookies for refresh token
+    credentials: 'include',
   });
 
-  const data = await response.json();
+  let data = await response.json();
 
   if (!response.ok || !data.success) {
-    // Check if token expired and attempt silent refresh
-    if (response.status === 401 && data?.error?.code === 'TOKEN_EXPIRED') {
+    // Attempt silent refresh once on 401 if not already refreshing
+    if (response.status === 401 && !isPublicAuthRoute) {
       const refreshed = await refreshToken();
-      if (refreshed) {
-        // Retry original request with new token
+      if (refreshed && accessTokenMemory) {
         headers['Authorization'] = `Bearer ${accessTokenMemory}`;
-        const retryRes = await fetch(`${API_BASE_URL}${endpoint}`, {
+        response = await fetch(`${API_BASE_URL}${endpoint}`, {
           ...options,
           headers,
           credentials: 'include',
         });
-        const retryData = await retryRes.json();
-        if (retryRes.ok && retryData.success) {
-          return retryData.data;
+        data = await response.json();
+        if (response.ok && data.success) {
+          return data.data;
         }
       }
     }
-    const message = data?.error?.message || 'An error occurred';
-    throw new Error(message);
+
+    const message = data?.error?.details
+      ? data.error.details.map((d: any) => d.message).join('. ')
+      : data?.error?.message || 'An error occurred';
+    const err: any = new Error(message);
+    err.details = data?.error?.details;
+    err.status = response.status;
+    throw err;
   }
 
   return data.data;
-}
-
-async function refreshToken(): Promise<boolean> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-    });
-    const data = await res.json();
-    if (res.ok && data.success && data.data?.accessToken) {
-      setAccessToken(data.data.accessToken);
-      return true;
-    }
-  } catch (err) {
-    console.error('Silent refresh failed:', err);
-  }
-  setAccessToken(null);
-  return false;
 }
 
 export const api = {
@@ -103,12 +136,41 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  sendOtp: (email: string) =>
+    request<{ message: string; otp?: string; expiresInSeconds: number }>('/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  cancelOtp: (email: string) =>
+    request<{ message: string }>('/auth/cancel-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  verifyOtp: (payload: { email: string; otp: string; name?: string; phone?: string; password?: string }) =>
+    request<{ user: User; accessToken: string }>('/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   logout: () =>
     request<{ message: string }>('/auth/logout', {
       method: 'POST',
     }),
 
   getMe: () => request<{ user: User }>('/auth/me'),
+
+  // Super Admin Requests Management
+  getPendingAdminRequests: () => request<{ requests: User[] }>('/users/admin-requests'),
+  approveAdminRequest: (userId: string) =>
+    request<{ user: User }>(`/users/admin-requests/${userId}/approve`, {
+      method: 'PATCH',
+    }),
+  rejectAdminRequest: (userId: string) =>
+    request<{ user: User }>(`/users/admin-requests/${userId}/reject`, {
+      method: 'PATCH',
+    }),
 
   // Programs
   getPublicPrograms: (params?: { page?: number; limit?: number; search?: string }) => {
@@ -232,4 +294,9 @@ export const api = {
     if (params?.limit) query.append('limit', params.limit.toString());
     return request<{ users: User[]; total: number; page: number; limit: number }>(`/admin/users?${query.toString()}`);
   },
+
+  deleteUser: (userId: string) =>
+    request<{ message: string }>(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    }),
 };

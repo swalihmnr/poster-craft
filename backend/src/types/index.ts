@@ -1,7 +1,7 @@
 import { Request } from 'express';
 
 export type UserRole = 'user' | 'admin';
-export type UserStatus = 'active' | 'blocked';
+export type UserStatus = 'active' | 'pending' | 'rejected' | 'blocked';
 
 export interface IUserPayload {
   userId: string;

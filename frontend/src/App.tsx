@@ -17,12 +17,29 @@ import { ToastContainer } from './components/ui/Toast';
 
 const queryClient = new QueryClient();
 
+const LoadingScreen: React.FC = () => (
+  <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3">
+    <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+    <span className="text-xs font-semibold text-slate-400">Verifying session...</span>
+  </div>
+);
+
 // Protected route wrapper for Admin role
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
-  if (isLoading) return null;
+  if (isLoading) return <LoadingScreen />;
   if (!user || user.role !== 'admin') {
     return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+// Route wrapper for guests (redirects logged-in users away from login/register)
+const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <LoadingScreen />;
+  if (user) {
+    return <Navigate to={user.role === 'admin' ? '/admin' : '/programs'} replace />;
   }
   return <>{children}</>;
 };
@@ -40,8 +57,22 @@ export const App: React.FC = () => {
                 <Route path="/" element={<Navigate to="/programs" replace />} />
                 <Route path="/programs" element={<ProgramListPage />} />
                 <Route path="/create/:programId" element={<PosterCreatorPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
+                <Route
+                  path="/login"
+                  element={
+                    <PublicOnlyRoute>
+                      <LoginPage />
+                    </PublicOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/register"
+                  element={
+                    <PublicOnlyRoute>
+                      <RegisterPage />
+                    </PublicOnlyRoute>
+                  }
+                />
 
                 {/* Admin Routes */}
                 <Route

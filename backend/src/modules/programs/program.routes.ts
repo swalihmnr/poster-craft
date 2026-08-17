@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { ProgramController } from './program.controller.js';
-import { validate } from '../../middleware/validate.js';
+import { handleValidationErrors } from '../../middleware/validate.js';
 import {
-  createProgramSchema,
-  updateProgramSchema,
-  updateProgramStatusSchema,
+  createProgramValidation,
+  updateProgramValidation,
+  updateProgramStatusValidation,
 } from './program.validation.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireAdmin } from '../../middleware/authorization.js';
@@ -18,13 +18,14 @@ router.get('/programs/id/:id', ProgramController.getById);
 
 // Admin routes
 router.use('/admin/programs', requireAuth, requireAdmin);
-router.post('/admin/programs', validate(createProgramSchema), ProgramController.create);
+router.post('/admin/programs', createProgramValidation, handleValidationErrors, ProgramController.create);
 router.get('/admin/programs', ProgramController.listAdmin);
 router.get('/admin/programs/:id', ProgramController.getById);
-router.patch('/admin/programs/:id', validate(updateProgramSchema), ProgramController.update);
+router.patch('/admin/programs/:id', updateProgramValidation, handleValidationErrors, ProgramController.update);
 router.patch(
   '/admin/programs/:id/status',
-  validate(updateProgramStatusSchema),
+  updateProgramStatusValidation,
+  handleValidationErrors,
   ProgramController.updateStatus
 );
 router.delete('/admin/programs/:id', ProgramController.delete);

@@ -16,7 +16,7 @@ export function requireAuth(req: AuthenticatedRequest, _res: Response, next: Nex
     }
 
     if (!token) {
-      return next(ApiError.unauthorized('Access token is missing'));
+      return next(new ApiError(401, 'Access token is missing', 'TOKEN_EXPIRED'));
     }
 
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as IUserPayload;
@@ -26,6 +26,20 @@ export function requireAuth(req: AuthenticatedRequest, _res: Response, next: Nex
     if (error instanceof jwt.TokenExpiredError) {
       return next(new ApiError(401, 'Access token expired', 'TOKEN_EXPIRED'));
     }
-    return next(ApiError.unauthorized('Invalid access token'));
+    return next(new ApiError(401, 'Invalid access token', 'TOKEN_EXPIRED'));
   }
+}
+
+export function requireAdmin(req: AuthenticatedRequest, _res: Response, next: NextFunction) {
+  if (!req.user || req.user.role !== 'admin') {
+    return next(ApiError.forbidden('Admin privileges required'));
+  }
+  next();
+}
+
+export function requireSuperAdmin(req: AuthenticatedRequest, _res: Response, next: NextFunction) {
+  if (!req.user || req.user.role !== 'admin' || req.user.email.toLowerCase() !== 'swalimohd048@gmail.com') {
+    return next(ApiError.forbidden('Super Admin privileges required'));
+  }
+  next();
 }
