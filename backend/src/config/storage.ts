@@ -89,17 +89,21 @@ class LocalStorage implements StorageService {
   private uploadDir: string;
 
   constructor() {
+    // Store the intended path but do NOT create directories at construction time.
+    // Vercel's serverless environment has a read-only filesystem at module load.
+    // Directories are created lazily inside each upload method (local dev only).
     this.uploadDir = path.resolve(process.cwd(), env.UPLOAD_DIR);
-    if (!fs.existsSync(this.uploadDir)) {
-      fs.mkdirSync(this.uploadDir, { recursive: true });
+  }
+
+  private ensureDir(folder: string): void {
+    if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder, { recursive: true });
     }
   }
 
   async uploadFile(filePath: string, folder = 'assets'): Promise<UploadResult> {
     const targetFolder = path.join(this.uploadDir, folder);
-    if (!fs.existsSync(targetFolder)) {
-      fs.mkdirSync(targetFolder, { recursive: true });
-    }
+    this.ensureDir(targetFolder);
     const filename = `${Date.now()}-${path.basename(filePath)}`;
     const destination = path.join(targetFolder, filename);
     await fs.promises.copyFile(filePath, destination);
@@ -119,9 +123,7 @@ class LocalStorage implements StorageService {
 
   async uploadBuffer(buffer: Buffer, originalname: string, folder = 'assets'): Promise<UploadResult> {
     const targetFolder = path.join(this.uploadDir, folder);
-    if (!fs.existsSync(targetFolder)) {
-      fs.mkdirSync(targetFolder, { recursive: true });
-    }
+    this.ensureDir(targetFolder);
     const ext = path.extname(originalname) || '.png';
     const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}${ext}`;
     const destination = path.join(targetFolder, filename);

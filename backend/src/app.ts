@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import path from 'path';
 import { env } from './config/env.js';
 import { globalRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -25,14 +24,18 @@ app.use(
   })
 );
 
+const allowedOrigins = new Set(
+  [env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'].filter(Boolean)
+);
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow local development and configured client URL
-      if (!origin || origin.includes('localhost') || origin === env.CLIENT_URL) {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin || allowedOrigins.has(origin)) {
         callback(null, true);
       } else {
-        callback(null, true);
+        callback(new Error(`CORS: origin '${origin}' not allowed`));
       }
     },
     credentials: true,
@@ -44,16 +47,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Serve static uploaded files for local storage provider fallback with CORS headers
-app.use(
-  '/uploads',
-  express.static(path.resolve(process.cwd(), env.UPLOAD_DIR), {
-    setHeaders: (res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    },
-  })
-);
+// NOTE: Static /uploads serving is intentionally removed.
+// In production (Vercel), all files are stored on Cloudinary — no local disk.
+// In local development, files are served by Vite's proxy to localhost:5000.
+// If you need local static serving during dev, run: npx serve ./uploads
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
