@@ -8,16 +8,14 @@
     {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/api/index.ts"
-    },
-    {
-      "src": "/uploads/(.*)",
       "dest": "backend/api/index.ts"
     },
     {
@@ -29,7 +27,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/index.html"
+      "dest": "/index.html"
     }
   ]
 }
