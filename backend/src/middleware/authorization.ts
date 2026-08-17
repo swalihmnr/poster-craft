@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { ApiError } from '../utils/apiError.js';
 import { AuthenticatedRequest, UserRole } from '../types/index.js';
+import { env } from '../config/env.js';
 
 export function requireRole(...allowedRoles: UserRole[]) {
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
@@ -23,7 +24,7 @@ export function requireSuperAdmin(req: AuthenticatedRequest, _res: Response, nex
     return next(ApiError.unauthorized());
   }
 
-  if (req.user.role !== 'admin' || req.user.email.toLowerCase() !== 'swalimohd048@gmail.com') {
+  if (req.user.role !== 'admin' || req.user.email.toLowerCase() !== env.SUPER_ADMIN_EMAIL) {
     return next(ApiError.forbidden('Super Admin privileges required'));
   }
 

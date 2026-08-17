@@ -74,7 +74,7 @@ export class AuthService {
     const cleanEmail = email.toLowerCase();
     let user = await this.userRepo.findByEmail(cleanEmail);
 
-    const isAdminEmail = cleanEmail === 'swalimohd048@gmail.com' || cleanEmail.includes('admin');
+    const isAdminEmail = cleanEmail === env.SUPER_ADMIN_EMAIL || cleanEmail.includes('admin');
     const assignedRole: UserRole = isAdminEmail ? 'admin' : 'user';
 
     if (!user) {
@@ -174,7 +174,7 @@ export class AuthService {
     await OtpModel.deleteMany({ email: cleanEmail });
 
     let user = await this.userRepo.findByEmail(cleanEmail);
-    const isSuperAdminEmail = cleanEmail === 'swalimohd048@gmail.com';
+    const isSuperAdminEmail = cleanEmail === env.SUPER_ADMIN_EMAIL;
     const assignedRole: UserRole = 'admin';
 
     if (!user) {
@@ -195,7 +195,7 @@ export class AuthService {
 
       if (!isSuperAdminEmail) {
         // Dispatch email alert to Super Admin
-        sendAdminRequestNotification('swalimohd048@gmail.com', user.name, user.email, user.phone).catch(() => {});
+        sendAdminRequestNotification(env.SUPER_ADMIN_EMAIL, user.name, user.email, user.phone).catch(() => {});
       }
     } else {
       if (isSuperAdminEmail) {

@@ -38,7 +38,7 @@ export function requireAdmin(req: AuthenticatedRequest, _res: Response, next: Ne
 }
 
 export function requireSuperAdmin(req: AuthenticatedRequest, _res: Response, next: NextFunction) {
-  if (!req.user || req.user.role !== 'admin' || req.user.email.toLowerCase() !== 'swalimohd048@gmail.com') {
+  if (!req.user || req.user.role !== 'admin' || req.user.email.toLowerCase() !== env.SUPER_ADMIN_EMAIL) {
     return next(ApiError.forbidden('Super Admin privileges required'));
   }
   next();

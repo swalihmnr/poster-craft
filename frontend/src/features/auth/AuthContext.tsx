@@ -34,6 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (token: string, userData: User) => {
     setAccessToken(token);
     setUser(userData);
+    // Mark that user explicitly logged in during this browser session
+    sessionStorage.setItem('explicit_login', '1');
   };
 
   const logout = async () => {
@@ -44,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setAccessToken(null);
       setUser(null);
+      sessionStorage.removeItem('explicit_login');
     }
   };
 
@@ -51,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = await api.register(payload);
     setAccessToken(data.accessToken);
     setUser(data.user);
+    sessionStorage.setItem('explicit_login', '1');
   };
 
   return (

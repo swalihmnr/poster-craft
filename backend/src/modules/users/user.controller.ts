@@ -3,7 +3,7 @@ import { UserRepository } from './user.repository.js';
 import { sendSuccess } from '../../utils/apiResponse.js';
 import { ApiError } from '../../utils/apiError.js';
 import { sendAdminApprovalNotification, sendAdminRejectionNotification } from '../../utils/emailService.js';
-
+import { env } from '../../config/env.js';
 import { UserModel } from './user.model.js';
 
 const userRepo = new UserRepository();
@@ -66,7 +66,7 @@ export class UserController {
       if (!user) {
         throw ApiError.notFound('User not found');
       }
-      if (user.email === 'swalimohd048@gmail.com') {
+      if (user.email === env.SUPER_ADMIN_EMAIL) {
         throw ApiError.forbidden('Cannot delete primary Super Admin account');
       }
 

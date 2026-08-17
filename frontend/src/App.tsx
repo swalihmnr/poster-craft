@@ -28,7 +28,10 @@ const LoadingScreen: React.FC = () => (
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
   if (isLoading) return <LoadingScreen />;
-  if (!user || user.role !== 'admin') {
+  // Require both a valid admin session AND an explicit login this browser session.
+  // This prevents auto-redirecting into the admin area from a restored cookie session.
+  const hasExplicitLogin = sessionStorage.getItem('explicit_login') === '1';
+  if (!user || user.role !== 'admin' || !hasExplicitLogin) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
@@ -39,7 +42,8 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { user, isLoading } = useAuth();
   if (isLoading) return <LoadingScreen />;
   if (user) {
-    return <Navigate to={user.role === 'admin' ? '/admin' : '/programs'} replace />;
+    // Always send to /programs — admin reaches /admin via explicit navigation
+    return <Navigate to="/programs" replace />;
   }
   return <>{children}</>;
 };
