@@ -329,7 +329,7 @@ export const api = {
   },
 
   deleteUser: (userId: string) =>
-    request<{ message: string }>(`/admin/users/${userId}`, {
+    request<{ message: string }>(`/users/${userId}`, {
       method: 'DELETE',
     }),
 };
