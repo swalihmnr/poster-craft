@@ -38,6 +38,7 @@ export class AssetService {
     }
     throw ApiError.badRequest('Signed upload not available — Cloudinary credentials are not configured');
   }
+  
 
   async deleteAsset(id: string, userId: string, isAdmin = false) {
     const asset = await this.assetRepo.findById(id);
