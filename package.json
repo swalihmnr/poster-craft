@@ -1,0 +1,11 @@
+{
+  "name": "poster-craft-monorepo",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=frontend && npm run build --workspace=backend"
+  }
+}
