@@ -6,7 +6,7 @@ const router = Router();
 
 router.use(requireAuth);
 // Step 1: get a signed upload token — browser uploads directly to Cloudinary
-router.post('/upload-signature', AssetController.getSignature);
+router.get('/upload-signature', AssetController.getSignature);
 // Step 2: save the Cloudinary result (url, publicId, etc.) returned by the browser
 router.post('/record', AssetController.record);
 router.get('/', AssetController.list);
