@@ -1,20 +1,19 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
-import { ToastContainer } from './components/ui/Toast';
+import { LoginPage } from './features/auth/LoginPage';
+import { RegisterPage } from './features/auth/RegisterPage';
+import { ProgramListPage } from './features/programs/ProgramListPage';
+import { PosterCreatorPage } from './features/poster/PosterCreatorPage';
+import { AdminDashboardPage } from './features/admin/AdminDashboardPage';
+import { AdminProgramsPage } from './features/admin/AdminProgramsPage';
+import { AdminTemplateEditorPage } from './features/admin/AdminTemplateEditorPage';
+import { AdminAssetsPage } from './features/admin/AdminAssetsPage';
 
-// Lazy-loaded pages — each becomes its own JS chunk (fixes 938kB bundle warning)
-const LoginPage              = lazy(() => import('./features/auth/LoginPage').then(m => ({ default: m.LoginPage })));
-const RegisterPage           = lazy(() => import('./features/auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
-const ProgramListPage        = lazy(() => import('./features/programs/ProgramListPage').then(m => ({ default: m.ProgramListPage })));
-const PosterCreatorPage      = lazy(() => import('./features/poster/PosterCreatorPage').then(m => ({ default: m.PosterCreatorPage })));
-const AdminDashboardPage     = lazy(() => import('./features/admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
-const AdminProgramsPage      = lazy(() => import('./features/admin/AdminProgramsPage').then(m => ({ default: m.AdminProgramsPage })));
-const AdminTemplateEditorPage = lazy(() => import('./features/admin/AdminTemplateEditorPage').then(m => ({ default: m.AdminTemplateEditorPage })));
-const AdminAssetsPage        = lazy(() => import('./features/admin/AdminAssetsPage').then(m => ({ default: m.AdminAssetsPage })));
+import { ToastContainer } from './components/ui/Toast';
 
 const queryClient = new QueryClient();
 
@@ -58,8 +57,7 @@ export const App: React.FC = () => {
           <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 font-sans antialiased">
             <Navbar />
             <main className="flex-1">
-              <Suspense fallback={<LoadingScreen />}>
-                <Routes>
+              <Routes>
                 <Route path="/" element={<Navigate to="/programs" replace />} />
                 <Route path="/programs" element={<ProgramListPage />} />
                 <Route path="/create/:programId" element={<PosterCreatorPage />} />
@@ -114,10 +112,9 @@ export const App: React.FC = () => {
                   }
                 />
 
-                  {/* Catch all fallback */}
-                  <Route path="*" element={<Navigate to="/programs" replace />} />
-                </Routes>
-              </Suspense>
+                {/* Catch all fallback */}
+                <Route path="*" element={<Navigate to="/programs" replace />} />
+              </Routes>
             </main>
             <Footer />
           </div>
