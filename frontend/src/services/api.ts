@@ -248,15 +248,54 @@ export const api = {
     }),
 
   // Assets
-  uploadAsset: (file: File, type: 'psd' | 'frame' | 'photo' | 'logo' | 'background' = 'photo') => {
+  /**
+   * Two-step direct Cloudinary upload (bypasses Vercel 4.5MB body limit):
+   * 1. Get a signed upload token from our backend
+   * 2. POST the file directly to Cloudinary
+   * 3. Record the result in our backend (saves to MongoDB)
+   */
+  uploadAsset: async (file: File, type: 'psd' | 'frame' | 'photo' | 'logo' | 'background' = 'photo'): Promise<Asset> => {
+    // Step 1: get signature from our backend
+    const sig = await request<{ signature: string; timestamp: number; apiKey: string; cloudName: string }>(
+      '/assets/upload-signature?folder=poster_saas'
+    );
+
+    // Step 2: upload directly to Cloudinary
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('type', type);
-    return request<Asset>('/assets/upload', {
+    formData.append('api_key', sig.apiKey);
+    formData.append('timestamp', String(sig.timestamp));
+    formData.append('signature', sig.signature);
+    formData.append('folder', 'poster_saas');
+
+    const cloudRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`,
+      { method: 'POST', body: formData }
+    );
+    if (!cloudRes.ok) {
+      const err = await cloudRes.json().catch(() => ({}));
+      throw new Error((err as any)?.error?.message || 'Cloudinary upload failed');
+    }
+    const cloudData = await cloudRes.json() as {
+      secure_url: string; public_id: string;
+      width?: number; height?: number; format?: string; bytes?: number;
+    };
+
+    // Step 3: record the result in our backend
+    return request<Asset>('/assets/record', {
       method: 'POST',
-      body: formData,
+      body: JSON.stringify({
+        url: cloudData.secure_url,
+        publicId: cloudData.public_id,
+        width: cloudData.width,
+        height: cloudData.height,
+        format: cloudData.format,
+        size: cloudData.bytes,
+        type,
+      }),
     });
   },
+
 
   listAssets: (params?: { type?: string; page?: number }) => {
     const query = new URLSearchParams();

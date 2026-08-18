@@ -5,26 +5,38 @@ import { ApiError } from '../../utils/apiError.js';
 export class AssetService {
   private assetRepo = new AssetRepository();
 
-  async uploadAsset(fileBuffer: Buffer, originalname: string, ownerId: string, type: 'frame' | 'photo' | 'logo' | 'background' = 'photo') {
-    const uploadRes = await storageService.uploadBuffer(fileBuffer, originalname, type);
+  /**
+   * Called after the browser has already uploaded directly to Cloudinary.
+   * We just persist the resulting metadata to MongoDB.
+   */
+  async recordAsset(data: {
+    ownerId: string;
+    type: string;
+    url: string;
+    publicId: string;
+    width?: number;
+    height?: number;
+    format?: string;
+    size?: number;
+  }) {
     return this.assetRepo.create({
-      ownerId: ownerId as any,
-      type,
-      provider: uploadRes.provider,
-      url: uploadRes.url,
-      publicId: uploadRes.publicId,
-      width: uploadRes.width,
-      height: uploadRes.height,
-      format: uploadRes.format,
-      size: uploadRes.size,
+      ownerId: data.ownerId as any,
+      type: data.type as any,
+      provider: 'cloudinary',
+      url: data.url,
+      publicId: data.publicId,
+      width: data.width,
+      height: data.height,
+      format: data.format,
+      size: data.size,
     });
   }
 
-  async getUploadSignature(folder = 'assets') {
+  async getUploadSignature(folder = 'poster_saas') {
     if (storageService.getUploadSignature) {
       return storageService.getUploadSignature(folder);
     }
-    throw ApiError.badRequest('Signed upload signature not supported with local storage provider');
+    throw ApiError.badRequest('Signed upload not available — Cloudinary credentials are not configured');
   }
 
   async deleteAsset(id: string, userId: string, isAdmin = false) {
@@ -45,3 +57,4 @@ export class AssetService {
     return this.assetRepo.listByOwner(ownerId, type, page, limit);
   }
 }
+

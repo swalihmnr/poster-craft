@@ -6,31 +6,42 @@ import { AuthenticatedRequest } from '../../types/index.js';
 const assetService = new AssetService();
 
 export class AssetController {
-  static async upload(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  /**
+   * Step 1 of direct Cloudinary upload:
+   * Returns a signed signature so the browser can upload directly to Cloudinary.
+   */
+  static async getSignature(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      if (!req.file) {
-        return res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
-      }
-
-      const type = (req.body.type as any) || 'photo';
-      const asset = await assetService.uploadAsset(
-        req.file.buffer,
-        req.file.originalname,
-        req.user!.userId,
-        type
-      );
-
-      return sendSuccess(res, asset, 201, 'Asset uploaded successfully');
+      const folder = (req.query.folder as string) || 'poster_saas';
+      const signatureInfo = await assetService.getUploadSignature(folder);
+      return sendSuccess(res, signatureInfo);
     } catch (error) {
       next(error);
     }
   }
 
-  static async getSignature(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  /**
+   * Step 2 of direct Cloudinary upload:
+   * Browser has uploaded directly to Cloudinary. It sends back the result here.
+   * We just save the metadata (url, publicId, etc.) to MongoDB.
+   */
+  static async record(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const folder = (req.query.folder as string) || 'assets';
-      const signatureInfo = await assetService.getUploadSignature(folder);
-      return sendSuccess(res, signatureInfo);
+      const { url, publicId, width, height, format, size, type } = req.body;
+      if (!url || !publicId) {
+        return res.status(400).json({ success: false, error: { code: 'MISSING_FIELDS', message: 'url and publicId are required' } });
+      }
+      const asset = await assetService.recordAsset({
+        ownerId: req.user!.userId,
+        type: type || 'photo',
+        url,
+        publicId,
+        width,
+        height,
+        format,
+        size,
+      });
+      return sendSuccess(res, asset, 201, 'Asset recorded successfully');
     } catch (error) {
       next(error);
     }
@@ -60,3 +71,4 @@ export class AssetController {
     }
   }
 }
+
