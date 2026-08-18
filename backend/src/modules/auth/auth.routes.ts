@@ -9,7 +9,6 @@ const router = Router();
 
 router.post('/register', authRateLimiter, registerValidation, handleValidationErrors, AuthController.register);
 router.post('/login', authRateLimiter, loginValidation, handleValidationErrors, AuthController.login);
-router.post('/google', authRateLimiter, AuthController.googleAuth);
 router.post('/send-otp', authRateLimiter, sendOtpValidation, handleValidationErrors, AuthController.sendOtp);
 router.post('/cancel-otp', authRateLimiter, AuthController.cancelOtp);
 router.post('/verify-otp', authRateLimiter, verifyOtpValidation, handleValidationErrors, AuthController.verifyOtp);

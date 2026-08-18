@@ -70,55 +70,6 @@ export class AuthService {
     return { user: this.sanitizeUser(user), tokens };
   }
 
-  async googleAuth(credential: string) {
-    // Verify the Google ID token sent from the browser
-    const { OAuth2Client } = await import('google-auth-library');
-    const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
-
-    let payload: any;
-    try {
-      const ticket = await client.verifyIdToken({
-        idToken: credential,
-        audience: env.GOOGLE_CLIENT_ID,
-      });
-      payload = ticket.getPayload();
-    } catch {
-      throw ApiError.unauthorized('Invalid Google token. Please try again.');
-    }
-
-    if (!payload?.email) {
-      throw ApiError.unauthorized('Google did not return an email address.');
-    }
-
-    const cleanEmail = payload.email.toLowerCase();
-    const name = payload.name || payload.given_name || 'Google User';
-    const avatar = payload.picture;
-
-    let user = await this.userRepo.findByEmail(cleanEmail);
-    const isAdminEmail = cleanEmail === env.SUPER_ADMIN_EMAIL.toLowerCase();
-    const assignedRole: UserRole = isAdminEmail ? 'admin' : 'user';
-
-    if (!user) {
-      const dummyPassword = await bcrypt.hash(`google_${Date.now()}_${Math.random()}`, 10);
-      user = await this.userRepo.create({
-        name,
-        email: cleanEmail,
-        passwordHash: dummyPassword,
-        role: assignedRole,
-        avatar,
-        status: 'active',
-      });
-    } else if (user.status === 'blocked') {
-      throw ApiError.forbidden('Your account has been blocked');
-    } else if (isAdminEmail && user.role !== 'admin') {
-      user.role = 'admin';
-      await user.save();
-    }
-
-    const tokens = this.generateTokens(user._id.toString(), user.email, user.role);
-    return { user: this.sanitizeUser(user), tokens };
-  }
-
   async refreshToken(refreshToken: string) {
     try {
       const decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as IUserPayload;

@@ -38,20 +38,6 @@ export class AuthController {
     }
   }
 
-  static async googleAuth(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { credential } = req.body;
-      if (!credential) {
-        return res.status(400).json({ success: false, error: { message: 'Google credential token is required' } });
-      }
-      const { user, tokens } = await authService.googleAuth(credential);
-      res.cookie('refreshToken', tokens.refreshToken, COOKIE_OPTIONS);
-      return sendSuccess(res, { user, accessToken: tokens.accessToken }, 200, 'Google Authentication successful');
-    } catch (error) {
-      next(error);
-    }
-  }
-
   static async logout(_req: Request, res: Response, next: NextFunction) {
     try {
       res.clearCookie('refreshToken', COOKIE_OPTIONS);

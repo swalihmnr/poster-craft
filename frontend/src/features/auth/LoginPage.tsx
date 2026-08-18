@@ -1,27 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { api } from '../../services/api';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Sparkles, Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: object) => void;
-          renderButton: (element: HTMLElement, config: object) => void;
-          prompt: () => void;
-        };
-      };
-    };
-  }
-}
-
-// Google Client ID is public — safe to hardcode in frontend code
-const GOOGLE_CLIENT_ID = '38192999166-c0oo3fsmqi7rpcltp0376c8miufutpmb.apps.googleusercontent.com';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,68 +15,6 @@ export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const googleBtnRef = useRef<HTMLDivElement>(null);
-
-  const handleGoogleCredential = async (credential: string) => {
-    setIsLoading(true);
-    setError('');
-    try {
-      const data = await api.googleLogin(credential);
-      login(data.accessToken, data.user);
-      if (data.user.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/programs');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Google Authentication failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
-
-    const initGoogle = () => {
-      if (!window.google || !googleBtnRef.current) return;
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (response: { credential: string }) => {
-          handleGoogleCredential(response.credential);
-        },
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
-      window.google.accounts.id.renderButton(googleBtnRef.current, {
-        theme: 'outline',
-        size: 'large',
-        width: googleBtnRef.current.offsetWidth || 400,
-        text: 'signin_with',
-        shape: 'rectangular',
-        logo_alignment: 'left',
-      });
-    };
-
-    // Load GSI script if not already loaded
-    if (window.google) {
-      initGoogle();
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = initGoogle;
-    document.head.appendChild(script);
-
-    return () => {
-      // cleanup: remove script if component unmounts before load
-      const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-      if (existing && !window.google) existing.remove();
-    };
-  }, []);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,24 +65,7 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Google Sign-In Button */}
-        {GOOGLE_CLIENT_ID ? (
-          <div className="w-full mb-5 min-h-[44px] flex justify-center">
-            <div ref={googleBtnRef} className="w-full" />
-          </div>
-        ) : (
-          <div className="mb-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs text-center">
-            Google Sign-In is not configured. Set <code>VITE_GOOGLE_CLIENT_ID</code>.
-          </div>
-        )}
-
-        <div className="flex items-center gap-3 my-5">
-          <div className="h-px bg-slate-800 flex-1" />
-          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Or continue with email</span>
-          <div className="h-px bg-slate-800 flex-1" />
-        </div>
-
-        <form noValidate onSubmit={handlePasswordSubmit} className="space-y-4">
+        <form noValidate onSubmit={handlePasswordSubmit} className="space-y-4 mt-6">
           <Input
             label="Email Address"
             type="email"
