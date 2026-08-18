@@ -6,11 +6,13 @@ import {
   Sparkles,
   LayoutDashboard,
   LogOut,
+  LogIn,
   User as UserIcon,
   Menu,
   X,
   Layers,
   Image as ImageIcon,
+  ShieldCheck,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -115,7 +117,23 @@ export const Navbar: React.FC = () => {
                   <LogOut className="w-4 h-4 text-slate-400 hover:text-red-400" />
                 </Button>
               </div>
-            ) : null}
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-400 hover:text-indigo-300 hover:bg-slate-800/60 transition-all"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Admin
+                </Link>
+                <Link to="/login">
+                  <Button variant="primary" size="sm">
+                    <LogIn className="w-3.5 h-3.5 mr-1.5" />
+                    Login
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -193,7 +211,16 @@ export const Navbar: React.FC = () => {
                   Log Out
                 </Button>
               </div>
-            ) : null}
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-indigo-300 hover:bg-slate-900 border border-indigo-800/40"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Login / Admin Access
+              </Link>
+            )}
           </div>
         </div>
       )}
