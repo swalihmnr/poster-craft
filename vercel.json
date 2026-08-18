@@ -1,21 +1,10 @@
 {
   "services": {
-    "frontend": {
-      "root": "frontend"
-    },
-    "backend": {
-      "root": "backend",
-      "entrypoint": "api/index.ts"
-    }
+    "frontend": { "root": "frontend" },
+    "backend": { "root": "backend", "entrypoint": "api/index.ts" }
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": { "service": "backend" }
-    },
-    {
-      "source": "/(.*)",
-      "destination": { "service": "frontend" }
-    }
+    { "source": "/api/(.*)", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend", "path": "/" } }
   ]
 }
