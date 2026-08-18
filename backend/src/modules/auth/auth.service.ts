@@ -70,17 +70,38 @@ export class AuthService {
     return { user: this.sanitizeUser(user), tokens };
   }
 
-  async googleAuth(email: string, name?: string, avatar?: string) {
-    const cleanEmail = email.toLowerCase();
-    let user = await this.userRepo.findByEmail(cleanEmail);
+  async googleAuth(credential: string) {
+    // Verify the Google ID token sent from the browser
+    const { OAuth2Client } = await import('google-auth-library');
+    const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
-    const isAdminEmail = cleanEmail === env.SUPER_ADMIN_EMAIL || cleanEmail.includes('admin');
+    let payload: any;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw ApiError.unauthorized('Invalid Google token. Please try again.');
+    }
+
+    if (!payload?.email) {
+      throw ApiError.unauthorized('Google did not return an email address.');
+    }
+
+    const cleanEmail = payload.email.toLowerCase();
+    const name = payload.name || payload.given_name || 'Google User';
+    const avatar = payload.picture;
+
+    let user = await this.userRepo.findByEmail(cleanEmail);
+    const isAdminEmail = cleanEmail === env.SUPER_ADMIN_EMAIL.toLowerCase();
     const assignedRole: UserRole = isAdminEmail ? 'admin' : 'user';
 
     if (!user) {
       const dummyPassword = await bcrypt.hash(`google_${Date.now()}_${Math.random()}`, 10);
       user = await this.userRepo.create({
-        name: name || (isAdminEmail ? 'PosterCraft Admin' : 'Google User'),
+        name,
         email: cleanEmail,
         passwordHash: dummyPassword,
         role: assignedRole,

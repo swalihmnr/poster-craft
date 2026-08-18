@@ -130,10 +130,10 @@ export const api = {
       body: JSON.stringify(credentials),
     }),
 
-  googleLogin: (payload: { email: string; name?: string; avatar?: string; credential?: string }) =>
+  googleLogin: (credential: string) =>
     request<{ user: User; accessToken: string }>('/auth/google', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ credential }),
     }),
 
   sendOtp: (email: string) =>
