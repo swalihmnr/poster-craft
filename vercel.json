@@ -1,26 +1,26 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend"
-    },
-    "backend": {
-      "root": "backend",
-      "entrypoint": "api/index.ts"
-    }
-  },
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": {
-        "service": "backend"
+      "src": "backend/api/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "node_modules/mongoose/**",
+          "node_modules/pino/**",
+          "node_modules/pino-pretty/**",
+          "node_modules/swagger-ui-express/**",
+          "node_modules/swagger-ui-dist/**"
+        ]
       }
     },
-    {
-      "source": "/(.*)",
-      "destination": {
-        "service": "frontend",
-        "path": "/"
-      }
-    }
+    { "src": "frontend/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/backend/api/index.js" },
+    { "src": "/uploads/(.*)", "dest": "/backend/api/index.js" },
+    { "src": "/health", "dest": "/backend/api/index.js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
