@@ -8,6 +8,7 @@
     { "src": "/api/(.*)", "dest": "/backend/api/index.ts" },
     { "src": "/uploads/(.*)", "dest": "/backend/api/index.ts" },
     { "src": "/health", "dest": "/backend/api/index.ts" },
+    { "src": "/assets/(.*)", "dest": "/frontend/assets/$1" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/frontend/index.html" }
   ]
