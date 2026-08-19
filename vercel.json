@@ -9,6 +9,6 @@
     { "src": "/uploads/(.*)", "dest": "/backend/api/index.ts" },
     { "src": "/health", "dest": "/backend/api/index.ts" },
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/(.*)", "dest": "/frontend/index.html" }
   ]
 }
