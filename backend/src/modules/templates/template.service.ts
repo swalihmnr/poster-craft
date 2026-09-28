@@ -53,10 +53,13 @@ export class TemplateService {
     return this.templateRepo.delete(id);
   }
 
-  async listTemplates(page = 1, limit = 12, status?: string) {
+  async listTemplates(page = 1, limit = 12, status?: string, createdBy?: string) {
     const query: any = {};
     if (status) {
       query.status = status;
+    }
+    if (createdBy) {
+      query.createdBy = createdBy;
     }
     return this.templateRepo.findAll(query, page, limit);
   }

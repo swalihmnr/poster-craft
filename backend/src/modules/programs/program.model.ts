@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import crypto from 'crypto';
 
 export interface IProgram extends Document {
   _id: Types.ObjectId;
@@ -9,6 +10,7 @@ export interface IProgram extends Document {
   templateId: Types.ObjectId;
   status: 'draft' | 'published' | 'archived';
   createdBy: Types.ObjectId;
+  publicToken?: string; // unique token for shareable public link
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,6 +24,7 @@ const programSchema = new Schema<IProgram>(
     templateId: { type: Schema.Types.ObjectId, ref: 'Template', required: true },
     status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    publicToken: { type: String, unique: true, sparse: true },
   },
   { timestamps: true }
 );

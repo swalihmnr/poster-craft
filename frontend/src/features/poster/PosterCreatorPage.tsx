@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 
 export const PosterCreatorPage: React.FC = () => {
-  const { programId } = useParams<{ programId: string }>();
+  const { programId, token } = useParams<{ programId?: string; token?: string }>();
+  const identifier = token || programId;
   const navigate = useNavigate();
 
   const [program, setProgram] = useState<Program | null>(null);
@@ -51,10 +52,10 @@ export const PosterCreatorPage: React.FC = () => {
   ) || [];
 
   useEffect(() => {
-    if (programId) {
+    if (identifier) {
       fetchProgram();
     }
-  }, [programId]);
+  }, [identifier]);
 
   useEffect(() => {
     if (photoLayers.length > 0 && !activePhotoSlot) {
@@ -63,9 +64,12 @@ export const PosterCreatorPage: React.FC = () => {
   }, [photoLayers]);
 
   const fetchProgram = async () => {
+    if (!identifier) return;
     setIsLoading(true);
     try {
-      const data = await api.getPublicProgramById(programId!);
+      const data = token
+        ? await api.getProgramByToken(token)
+        : await api.getPublicProgramById(programId!);
       setProgram(data);
     } catch (err) {
       console.error('Failed to load program', err);

@@ -179,6 +179,18 @@ export const api = {
 
   getPublicProgramById: (id: string) => request<Program>(`/programs/id/${id}`),
 
+  getProgramByToken: (token: string) => request<Program>(`/p/${token}`),
+
+  generatePublicLink: (id: string) =>
+    request<{ publicToken: string }>(`/admin/programs/${id}/generate-link`, {
+      method: 'POST',
+    }),
+
+  revokePublicLink: (id: string) =>
+    request<void>(`/admin/programs/${id}/revoke-link`, {
+      method: 'DELETE',
+    }),
+
   getProgramById: (id: string) => request<Program>(`/admin/programs/${id}`),
 
   createProgram: (payload: Partial<Program>) =>
@@ -248,12 +260,12 @@ export const api = {
    * 2. POST the file directly to Cloudinary
    * 3. Record the result in our backend (saves to MongoDB)
    */
- uploadAsset: async (file: File, type: 'psd' | 'frame' | 'photo' | 'logo' | 'background' = 'photo'): Promise<Asset> => {
-  // Step 1: get signature from our backend
-  const sig = await request<{ signature: string; timestamp: number; apiKey: string; cloudName: string }>(
-    '/assets/upload-signature?folder=poster_saas',
-    { method: 'POST' }
-  );
+  uploadAsset: async (file: File, type: 'psd' | 'frame' | 'photo' | 'logo' | 'background' = 'photo'): Promise<Asset> => {
+    // Step 1: get signature from our backend
+    const sig = await request<{ signature: string; timestamp: number; apiKey: string; cloudName: string }>(
+      '/assets/upload-signature?folder=poster_saas',
+      { method: 'POST' }
+    );
     // Step 2: upload directly to Cloudinary
     const formData = new FormData();
     formData.append('file', file);

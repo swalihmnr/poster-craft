@@ -25,14 +25,19 @@ app.use(
 );
 
 const allowedOrigins = new Set(
-  [env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'].filter(Boolean)
+  [
+    env.CLIENT_URL,
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:3000',
+  ].filter(Boolean)
 );
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, server-to-server)
-      if (!origin || allowedOrigins.has(origin)) {
+      // Allow requests with no origin, allowedOrigins, or any .vercel.app deployment
+      if (!origin || allowedOrigins.has(origin) || origin.endsWith('.vercel.app')) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: origin '${origin}' not allowed`));

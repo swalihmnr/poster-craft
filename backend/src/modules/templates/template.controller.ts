@@ -45,13 +45,20 @@ export class TemplateController {
     }
   }
 
-  static async list(req: Request, res: Response, next: NextFunction) {
+  static async list(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 12;
+      const limit = parseInt(req.query.limit as string) || 50;
       const status = req.query.status as string;
 
-      const { templates, total } = await templateService.listTemplates(page, limit, status);
+      const isSuperAdmin =
+        req.user?.isSuperAdmin ||
+        req.user?.email === process.env.SUPER_ADMIN_EMAIL ||
+        req.user?.email === 'swalimohd048@gmail.com';
+
+      const createdBy = isSuperAdmin ? undefined : req.user!.userId;
+
+      const { templates, total } = await templateService.listTemplates(page, limit, status, createdBy);
       return sendPaginated(res, templates, page, limit, total);
     } catch (error) {
       next(error);

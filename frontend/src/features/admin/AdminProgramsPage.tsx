@@ -17,6 +17,8 @@ import {
   CheckCircle,
   XCircle,
   ExternalLink,
+  Share2,
+  Check,
 } from 'lucide-react';
 
 export const AdminProgramsPage: React.FC = () => {
@@ -35,6 +37,27 @@ export const AdminProgramsPage: React.FC = () => {
   const [templateId, setTemplateId] = useState('');
   const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('draft');
   const [isSaving, setIsSaving] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyLink = async (prog: Program) => {
+    let token = prog.publicToken;
+    if (!token) {
+      try {
+        const res = await api.generatePublicLink(prog._id);
+        token = res.publicToken;
+        prog.publicToken = token;
+      } catch (err) {
+        console.error('Failed to generate public link', err);
+      }
+    }
+    const url = token
+      ? `${window.location.origin}/p/${token}`
+      : `${window.location.origin}/create/${prog._id}`;
+
+    navigator.clipboard.writeText(url);
+    setCopiedId(prog._id);
+    setTimeout(() => setCopiedId(null), 2500);
+  };
 
   useEffect(() => {
     fetchData();
@@ -179,7 +202,10 @@ export const AdminProgramsPage: React.FC = () => {
                   <tr key={prog._id} className="hover:bg-slate-900/40 transition-colors">
                     <td className="px-6 py-4 font-medium text-white">
                       <div className="font-bold text-sm text-indigo-300">{prog.name}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">/{prog.slug}</div>
+                      <div className="text-[11px] text-emerald-400 font-mono mt-0.5 flex items-center gap-1">
+                        <span className="text-slate-500">Unique Link:</span>
+                        <span>/p/{prog.publicToken ? `${prog.publicToken.slice(0, 10)}...` : 'Generating'}</span>
+                      </div>
                     </td>
 
                     <td className="px-6 py-4">
@@ -213,9 +239,36 @@ export const AdminProgramsPage: React.FC = () => {
                     </td>
 
                     <td className="px-6 py-4 text-right space-x-2">
-                      <Link to={`/create/${prog._id}`} target="_blank" className="inline-block p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300" title="Preview User Flow">
+                      <button
+                        onClick={() => handleCopyLink(prog)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          copiedId === prog._id
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30'
+                        }`}
+                        title="Copy unique shareable link"
+                      >
+                        {copiedId === prog._id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span>Copy Unique Link</span>
+                          </>
+                        )}
+                      </button>
+                      <a
+                        href={prog.publicToken ? `/p/${prog.publicToken}` : `/create/${prog._id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 align-middle"
+                        title="Preview User Flow"
+                      >
                         <ExternalLink className="w-4 h-4" />
-                      </Link>
+                      </a>
                       <button
                         onClick={() => handleOpenEditModal(prog)}
                         className="p-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400"

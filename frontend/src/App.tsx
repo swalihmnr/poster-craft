@@ -14,6 +14,7 @@ import { AdminTemplateEditorPage } from './features/admin/AdminTemplateEditorPag
 import { AdminAssetsPage } from './features/admin/AdminAssetsPage';
 
 import { ToastContainer } from './components/ui/Toast';
+import { WhatsAppButton } from './components/ui/WhatsAppButton';
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ export const App: React.FC = () => {
                 <Route path="/" element={<Navigate to="/programs" replace />} />
                 <Route path="/programs" element={<ProgramListPage />} />
                 <Route path="/create/:programId" element={<PosterCreatorPage />} />
+                <Route path="/p/:token" element={<PosterCreatorPage />} />
                 <Route
                   path="/login"
                   element={
@@ -117,6 +119,7 @@ export const App: React.FC = () => {
               </Routes>
             </main>
             <Footer />
+            <WhatsAppButton />
           </div>
         </Router>
       </AuthProvider>

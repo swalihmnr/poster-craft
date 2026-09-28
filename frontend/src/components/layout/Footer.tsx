@@ -55,16 +55,29 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
         <div>&copy; 2026 PosterCraft. All rights reserved.</div>
 
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all group">
-          <span className="text-slate-400">Designed & Engineered by</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all group">
+            <span className="text-slate-400">Designed & Engineered by</span>
+            <a
+              href="https://personal-portfolio-tau-ashy.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 transition-colors"
+            >
+              <span>Muhammed Swalih</span>
+              <ExternalLink className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </a>
+          </div>
+
           <a
-            href="https://personal-portfolio-tau-ashy.vercel.app/"
+            href="https://wa.me/918589869676?text=Hi%20Muhammed%20Swalih,%20I'm%20reaching%20out%20regarding%20PosterCraft"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/40 hover:text-emerald-300 hover:border-emerald-400 transition-all text-xs font-medium"
+            title="Chat on WhatsApp: +91 85898 69676"
           >
-            <span>Muhammed Swalih</span>
-            <ExternalLink className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>WhatsApp: +91 85898 69676</span>
           </a>
         </div>
 

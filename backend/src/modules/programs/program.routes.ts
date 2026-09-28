@@ -11,12 +11,15 @@ import { requireAdmin } from '../../middleware/authorization.js';
 
 const router = Router();
 
-// Public routes
+// ─── Public routes ───────────────────────────────────────────────────────────
+// Programs list is private — returns empty. Direct access is allowed via ID, slug, or shareable token.
 router.get('/programs', ProgramController.listPublic);
-router.get('/programs/:slug', ProgramController.getBySlug);
 router.get('/programs/id/:id', ProgramController.getById);
+router.get('/programs/:slug', ProgramController.getBySlug);
+// Shareable public link: /p/:token  (no login required)
+router.get('/p/:token', ProgramController.getByToken);
 
-// Admin routes
+// ─── Admin routes ─────────────────────────────────────────────────────────────
 router.use('/admin/programs', requireAuth, requireAdmin);
 router.post('/admin/programs', createProgramValidation, handleValidationErrors, ProgramController.create);
 router.get('/admin/programs', ProgramController.listAdmin);
@@ -29,5 +32,8 @@ router.patch(
   ProgramController.updateStatus
 );
 router.delete('/admin/programs/:id', ProgramController.delete);
+// Link management
+router.post('/admin/programs/:id/generate-link', ProgramController.generatePublicLink);
+router.delete('/admin/programs/:id/revoke-link', ProgramController.revokePublicLink);
 
 export default router;

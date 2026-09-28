@@ -31,7 +31,7 @@ export class TemplateRepository {
     return { templates, total };
   }
 
-  async count(): Promise<number> {
-    return TemplateModel.countDocuments().exec();
+  async count(query: any = {}): Promise<number> {
+    return TemplateModel.countDocuments(query).exec();
   }
 }

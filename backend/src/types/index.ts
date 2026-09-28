@@ -7,6 +7,7 @@ export interface IUserPayload {
   userId: string;
   email: string;
   role: UserRole;
+  isSuperAdmin?: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {

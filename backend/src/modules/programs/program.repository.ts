@@ -1,4 +1,5 @@
 import { ProgramModel, IProgram } from './program.model.js';
+import crypto from 'crypto';
 
 export class ProgramRepository {
   async findById(id: string): Promise<IProgram | null> {
@@ -31,6 +32,29 @@ export class ProgramRepository {
 
   async delete(id: string): Promise<IProgram | null> {
     return ProgramModel.findByIdAndDelete(id).exec();
+  }
+
+  async findByToken(token: string): Promise<IProgram | null> {
+    return ProgramModel.findOne({ publicToken: token })
+      .populate('templateId')
+      .exec();
+  }
+
+  async generatePublicToken(id: string): Promise<IProgram | null> {
+    const token = crypto.randomBytes(16).toString('hex'); // 32-char hex
+    return ProgramModel.findByIdAndUpdate(
+      id,
+      { $set: { publicToken: token } },
+      { new: true }
+    ).exec();
+  }
+
+  async revokePublicToken(id: string): Promise<IProgram | null> {
+    return ProgramModel.findByIdAndUpdate(
+      id,
+      { $unset: { publicToken: '' } },
+      { new: true }
+    ).exec();
   }
 
   async findAll(

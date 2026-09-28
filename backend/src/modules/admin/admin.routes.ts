@@ -7,6 +7,6 @@ const router = Router();
 
 router.use(requireAuth, requireAdmin);
 router.get('/analytics', AdminController.getStats);
-router.get('/users', requireSuperAdmin, AdminController.listUsers);
+router.get('/users', AdminController.listUsers);
 
 export default router;

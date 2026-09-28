@@ -22,6 +22,7 @@ import {
   Terminal,
   Cpu,
   Globe,
+  ExternalLink,
 } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
@@ -64,9 +65,13 @@ export const AdminDashboardPage: React.FC = () => {
         setTotalUsersCount(usersData.total || 0);
         setPendingRequests(pendingData.requests || []);
       } else {
-        const statsData = await api.getAdminStats();
+        const [statsData, usersData] = await Promise.all([
+          api.getAdminStats(),
+          api.getAdminUsers({ limit: 20 }).catch(() => ({ users: [], total: 0 })),
+        ]);
         setStats(statsData);
-        setUsers([]);
+        setUsers(usersData.users || []);
+        setTotalUsersCount(usersData.total || 0);
         setPendingRequests([]);
       }
     } catch (err) {
@@ -328,29 +333,30 @@ export const AdminDashboardPage: React.FC = () => {
         )}
       </div>
 
-      {/* Super Admin User Management Table Section */}
-      {isSuperAdmin && (
-        <div id="users-section" className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-bold text-white">Registered Users Directory</h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
-                {totalUsersCount} Accounts
-              </span>
-            </div>
+      {/* User Management & Program Submissions Section */}
+      <div id="users-section" className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-emerald-400" />
+            <h2 className="text-lg font-bold text-white">
+              {isSuperAdmin ? 'Registered Admins & Users Directory' : 'Your Program Users & Submissions'}
+            </h2>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
+              {totalUsersCount} {isSuperAdmin ? 'Accounts' : 'Participants'}
+            </span>
           </div>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-900/80 text-slate-400 uppercase text-[10px] tracking-wider font-semibold border-b border-slate-800">
               <tr>
-                <th className="px-4 py-3">User</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Role</th>
+                <th className="px-4 py-3">User / Participant</th>
+                <th className="px-4 py-3">{isSuperAdmin ? 'Email' : 'Source Program'}</th>
+                <th className="px-4 py-3">Role / Type</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Created At</th>
-                <th className="px-4 py-3 text-right">Actions / Approval</th>
+                <th className="px-4 py-3">Submitted At</th>
+                <th className="px-4 py-3 text-right">{isSuperAdmin ? 'Actions / Approval' : 'Photo / Details'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-medium">
@@ -364,9 +370,17 @@ export const AdminDashboardPage: React.FC = () => {
                   return (
                     <tr key={uId} className="hover:bg-slate-900/40 transition-colors">
                       <td className="px-4 py-3 flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-xs">
-                          {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
-                        </div>
+                        {u.avatar ? (
+                          <img
+                            src={u.avatar}
+                            alt={u.name}
+                            className="w-8 h-8 rounded-full object-cover border border-slate-700"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-xs">
+                            {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                        )}
                         <span className="font-bold text-white">
                           {isSuper ? 'PosterCraft Admin' : u.name}
                         </span>
@@ -400,37 +414,53 @@ export const AdminDashboardPage: React.FC = () => {
                         {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {isSuper ? (
-                          <span className="text-[10px] font-semibold text-slate-500 italic">Primary Super Admin</span>
+                        {isSuperAdmin ? (
+                          isSuper ? (
+                            <span className="text-[10px] font-semibold text-slate-500 italic">Primary Super Admin</span>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              {currentStatus !== 'active' && (
+                                <button
+                                  onClick={() => handleApprove(uId, u.email)}
+                                  disabled={isProcessing}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all shadow-md active:scale-95 disabled:opacity-50"
+                                >
+                                  Approve Admin
+                                </button>
+                              )}
+                              {currentStatus !== 'rejected' && (
+                                <button
+                                  onClick={() => openRejectModal(uId, u.name, u.email)}
+                                  disabled={isProcessing}
+                                  className="px-2.5 py-1 rounded-lg bg-red-600/80 hover:bg-red-600 text-white font-bold text-[11px] transition-all active:scale-95 disabled:opacity-50"
+                                >
+                                  Decline
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setDeleteModalTarget({ id: uId, name: u.name, email: u.email })}
+                                disabled={isProcessing}
+                                title="Delete User permanently"
+                                className="p-1.5 rounded-lg bg-red-950/40 border border-red-500/30 text-red-400 hover:bg-red-900/60 hover:text-red-200 transition-all active:scale-95 disabled:opacity-50"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )
                         ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            {currentStatus !== 'active' && (
-                              <button
-                                onClick={() => handleApprove(uId, u.email)}
-                                disabled={isProcessing}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all shadow-md active:scale-95 disabled:opacity-50"
-                              >
-                                Approve Admin
-                              </button>
-                            )}
-                            {currentStatus !== 'rejected' && (
-                              <button
-                                onClick={() => openRejectModal(uId, u.name, u.email)}
-                                disabled={isProcessing}
-                                className="px-2.5 py-1 rounded-lg bg-red-600/80 hover:bg-red-600 text-white font-bold text-[11px] transition-all active:scale-95 disabled:opacity-50"
-                              >
-                                Decline
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setDeleteModalTarget({ id: uId, name: u.name, email: u.email })}
-                              disabled={isProcessing}
-                              title="Delete User permanently"
-                              className="p-1.5 rounded-lg bg-red-950/40 border border-red-500/30 text-red-400 hover:bg-red-900/60 hover:text-red-200 transition-all active:scale-95 disabled:opacity-50"
+                          u.avatar ? (
+                            <a
+                              href={u.avatar}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-semibold transition-all border border-indigo-500/20"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                              <span>View Photo</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <span className="text-slate-500 text-xs italic">No photo</span>
+                          )
                         )}
                       </td>
                     </tr>
@@ -438,8 +468,10 @@ export const AdminDashboardPage: React.FC = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
-                    No user accounts found.
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                    {isSuperAdmin
+                      ? 'No user accounts found.'
+                      : 'No users have submitted posters on your programs yet.'}
                   </td>
                 </tr>
               )}
@@ -447,7 +479,6 @@ export const AdminDashboardPage: React.FC = () => {
           </table>
         </div>
       </div>
-    )}
 
       {/* Toast Notification */}
       {toast && (

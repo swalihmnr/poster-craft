@@ -100,6 +100,7 @@ export interface Program {
   thumbnail?: string;
   templateId: TemplateConfig;
   status: 'draft' | 'published' | 'archived';
+  publicToken?: string;
   createdBy?: any;
   createdAt?: string;
   updatedAt?: string;

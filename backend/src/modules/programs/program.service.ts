@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+import crypto from 'crypto';
 import { ProgramRepository } from './program.repository.js';
 import { TemplateRepository } from '../templates/template.repository.js';
 import { ApiError } from '../../utils/apiError.js';
@@ -27,16 +29,42 @@ export class ProgramService {
       slug = `${slug}-${Date.now().toString().slice(-4)}`;
     }
 
+    const publicToken = crypto.randomBytes(16).toString('hex');
+
     return this.programRepo.create({
       status: 'published',
       ...data,
       slug,
+      publicToken,
       createdBy,
     });
   }
 
   async getProgramById(id: string) {
-    const program = await this.programRepo.findById(id);
+    let program = null;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      program = await this.programRepo.findById(id);
+    }
+
+    if (!program) {
+      program = await this.programRepo.findBySlug(id);
+    }
+
+    if (!program) {
+      program = await this.programRepo.findByToken(id);
+    }
+
+    // Fallback: If still not found, check if there is an active program matching the prefix (handles typos)
+    if (!program && id && id.length >= 8) {
+      const prefix = id.substring(0, 8);
+      const all = await this.programRepo.findAll({ status: { $ne: 'archived' } }, 1, 10);
+      const match = all.programs.find((p: any) => p._id.toString().startsWith(prefix));
+      if (match) {
+        program = await this.programRepo.findById(match._id.toString());
+      }
+    }
+
     if (!program) {
       throw ApiError.notFound('Program not found');
     }
@@ -87,18 +115,39 @@ export class ProgramService {
     return this.programRepo.delete(id);
   }
 
-  async listPublicPrograms(page = 1, limit = 12, search?: string) {
-    const published = await this.programRepo.findAll({ status: 'published' }, page, limit, search);
-    if (published.total > 0) {
-      return published;
-    }
-    return this.programRepo.findAll({ status: { $ne: 'archived' } }, page, limit, search);
+  // Programs are private — public listing is disabled.
+  // The public can only access a program via a generated shareable token link.
+  async listPublicPrograms() {
+    return { programs: [], total: 0 };
   }
 
-  async listAdminPrograms(page = 1, limit = 12, search?: string, status?: string) {
+  async getProgramByToken(token: string) {
+    const program = await this.programRepo.findByToken(token);
+    if (!program) {
+      throw ApiError.notFound('Program not found or link has been revoked');
+    }
+    return program;
+  }
+
+  async generatePublicToken(id: string) {
+    const program = await this.programRepo.findById(id);
+    if (!program) throw ApiError.notFound('Program not found');
+    return this.programRepo.generatePublicToken(id);
+  }
+
+  async revokePublicToken(id: string) {
+    const program = await this.programRepo.findById(id);
+    if (!program) throw ApiError.notFound('Program not found');
+    return this.programRepo.revokePublicToken(id);
+  }
+
+  async listAdminPrograms(page = 1, limit = 12, search?: string, status?: string, createdBy?: string) {
     const filter: any = {};
     if (status) {
       filter.status = status;
+    }
+    if (createdBy) {
+      filter.createdBy = createdBy;
     }
     return this.programRepo.findAll(filter, page, limit, search);
   }

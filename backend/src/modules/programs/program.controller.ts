@@ -13,8 +13,18 @@ export class ProgramController {
       const limit = parseInt(req.query.limit as string) || 12;
       const search = req.query.search as string;
 
-      const { programs, total } = await programService.listPublicPrograms(page, limit, search);
+      const { programs, total } = await programService.listPublicPrograms();
       return sendPaginated(res, programs, page, limit, total);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getByToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const token = Array.isArray(req.params.token) ? req.params.token[0] : req.params.token;
+      const program = await programService.getProgramByToken(token);
+      return sendSuccess(res, program);
     } catch (error) {
       next(error);
     }
@@ -50,14 +60,21 @@ export class ProgramController {
     }
   }
 
-  static async listAdmin(req: Request, res: Response, next: NextFunction) {
+  static async listAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
       const search = req.query.search as string;
       const status = req.query.status as string;
 
-      const { programs, total } = await programService.listAdminPrograms(page, limit, search, status);
+      const isSuperAdmin =
+        req.user?.isSuperAdmin ||
+        req.user?.email === process.env.SUPER_ADMIN_EMAIL ||
+        req.user?.email === 'swalimohd048@gmail.com';
+
+      const createdBy = isSuperAdmin ? undefined : req.user!.userId;
+
+      const { programs, total } = await programService.listAdminPrograms(page, limit, search, status, createdBy);
       return sendPaginated(res, programs, page, limit, total);
     } catch (error) {
       next(error);
@@ -89,6 +106,26 @@ export class ProgramController {
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       await programService.deleteProgram(id);
       return sendSuccess(res, { message: 'Program deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async generatePublicLink(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const program = await programService.generatePublicToken(id);
+      return sendSuccess(res, { publicToken: program?.publicToken }, 200, 'Public link generated');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async revokePublicLink(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      await programService.revokePublicToken(id);
+      return sendSuccess(res, null, 200, 'Public link revoked');
     } catch (error) {
       next(error);
     }
