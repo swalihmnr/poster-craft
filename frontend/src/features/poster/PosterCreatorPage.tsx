@@ -31,7 +31,7 @@ export const PosterCreatorPage: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // User input state
-  const [name, setName] = useState('Swalih');
+  const [name, setName] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [photos, setPhotos] = useState<Record<string, string>>({});
   const [crops, setCrops] = useState<Record<string, { zoom: number; offsetX: number; offsetY: number; rotation: number }>>({});
