@@ -7,6 +7,11 @@ import { connectDB } from '../src/config/database.js';
 // On production, run seed manually or via a one-off script.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Allow health check to succeed even before DB connects
+  if (req.url === '/health' || req.url === '/api/health') {
+    return app(req, res);
+  }
+
   try {
     await connectDB();
   } catch (err: any) {
@@ -15,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: false,
       error: {
         code: 'DB_CONNECTION_ERROR',
-        message: `Database connection error: ${err.message || 'Failed to connect to MongoDB'}. Please verify MONGO_URI in Vercel and check that MongoDB Atlas allows access from all IPs (0.0.0.0/0).`,
+        message: `Database connection error: ${err.message || 'Failed to connect to MongoDB'}. In MongoDB Atlas -> Network Access, add IP Address 0.0.0.0/0 (Allow Access from Anywhere).`,
       },
     });
   }

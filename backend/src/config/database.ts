@@ -8,7 +8,10 @@ export async function connectDB(): Promise<typeof mongoose> {
       return mongoose;
     }
     mongoose.set('strictQuery', true);
-    const conn = await mongoose.connect(env.MONGO_URI);
+    const conn = await mongoose.connect(env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+    });
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {
