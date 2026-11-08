@@ -84,9 +84,24 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     credentials: 'include',
   });
 
-  let data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  let data: any = null;
 
-  if (!response.ok || !data.success) {
+  if (contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+  } else {
+    const rawText = await response.text();
+    const cleanSnippet = rawText.replace(/<[^>]+>/g, '').trim().slice(0, 150);
+    throw new Error(
+      `Server error (${response.status}): ${cleanSnippet || response.statusText || 'Unexpected non-JSON response from server'}`
+    );
+  }
+
+  if (!response.ok || !data?.success) {
     // Attempt silent refresh once on 401 if not already refreshing
     if (response.status === 401 && !isPublicAuthRoute) {
       const refreshed = await refreshToken();
@@ -97,8 +112,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
           headers,
           credentials: 'include',
         });
-        data = await response.json();
-        if (response.ok && data.success) {
+        const retryType = response.headers.get('content-type') || '';
+        if (retryType.includes('application/json')) {
+          data = await response.json().catch(() => null);
+        } else {
+          data = null;
+        }
+        if (response.ok && data?.success) {
           return data.data;
         }
       }
@@ -106,7 +126,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
     const message = data?.error?.details
       ? data.error.details.map((d: any) => d.message).join('. ')
-      : data?.error?.message || 'An error occurred';
+      : data?.error?.message || `Server returned error (${response.status})`;
     const err: any = new Error(message);
     err.details = data?.error?.details;
     err.status = response.status;

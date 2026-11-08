@@ -7,7 +7,17 @@ import { connectDB } from '../src/config/database.js';
 // On production, run seed manually or via a one-off script.
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  await connectDB();
+  try {
+    await connectDB();
+  } catch (err: any) {
+    console.error('Database connection failed in serverless handler:', err);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'DB_CONNECTION_ERROR',
+        message: `Database connection error: ${err.message || 'Failed to connect to MongoDB'}. Please verify MONGO_URI in Vercel and check that MongoDB Atlas allows access from all IPs (0.0.0.0/0).`,
+      },
+    });
+  }
   return app(req, res);
-  
 }
