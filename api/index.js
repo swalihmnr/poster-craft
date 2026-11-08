@@ -153961,18 +153961,25 @@ app.use(import_express8.default.json({ limit: "10mb" }));
 app.use(import_express8.default.urlencoded({ extended: true, limit: "10mb" }));
 app.use((0, import_cookie_parser.default)());
 var uploadDirPath = import_path2.default.resolve(process.cwd(), env.UPLOAD_DIR || "uploads");
-if (!import_fs2.default.existsSync(uploadDirPath)) {
-  import_fs2.default.mkdirSync(uploadDirPath, { recursive: true });
-}
-app.use(
-  "/uploads",
-  import_express8.default.static(uploadDirPath, {
-    setHeaders: (res) => {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+try {
+  if (process.env.VERCEL !== "1") {
+    if (!import_fs2.default.existsSync(uploadDirPath)) {
+      import_fs2.default.mkdirSync(uploadDirPath, { recursive: true });
     }
-  })
-);
+  }
+  if (import_fs2.default.existsSync(uploadDirPath)) {
+    app.use(
+      "/uploads",
+      import_express8.default.static(uploadDirPath, {
+        setHeaders: (res) => {
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+        }
+      })
+    );
+  }
+} catch {
+}
 app.get(["/health", "/api/health", "/api/v1/health"], (_req, res) => {
   res.status(200).json({
     status: "ok",

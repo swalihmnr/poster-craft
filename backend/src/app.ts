@@ -57,20 +57,28 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Serve static uploaded files with CORS headers (for local storage provider)
+// Serve static uploaded files with CORS headers (for local storage provider, safe in serverless)
 const uploadDirPath = path.resolve(process.cwd(), env.UPLOAD_DIR || 'uploads');
-if (!fs.existsSync(uploadDirPath)) {
-  fs.mkdirSync(uploadDirPath, { recursive: true });
+try {
+  if (process.env.VERCEL !== '1') {
+    if (!fs.existsSync(uploadDirPath)) {
+      fs.mkdirSync(uploadDirPath, { recursive: true });
+    }
+  }
+  if (fs.existsSync(uploadDirPath)) {
+    app.use(
+      '/uploads',
+      express.static(uploadDirPath, {
+        setHeaders: (res) => {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        },
+      })
+    );
+  }
+} catch {
+  // Read-only filesystem in serverless environments like Vercel
 }
-app.use(
-  '/uploads',
-  express.static(uploadDirPath, {
-    setHeaders: (res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    },
-  })
-);
 
 // Health check endpoint
 app.get(['/health', '/api/health', '/api/v1/health'], (_req: Request, res: Response) => {
