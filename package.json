@@ -6,6 +6,6 @@
     "backend"
   ],
   "scripts": {
-    "build": "npm run build --workspace=frontend && npm run build --workspace=backend"
+    "build": "npm run build --workspace=frontend && npm run build --workspace=backend && npx esbuild backend/api/index.ts --bundle --platform=node --format=cjs --outfile=api/index.js"
   }
 }

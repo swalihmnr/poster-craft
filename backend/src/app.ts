@@ -5,6 +5,8 @@ import cookieParser from 'cookie-parser';
 import fs from 'fs';
 import path from 'path';
 import { env } from './config/env.js';
+import { connectDB } from './config/database.js';
+import { logger } from './utils/logger.js';
 import { globalRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -77,6 +79,26 @@ app.get('/health', (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
+});
+
+// Ensure DB connection for API routes
+app.use(async (req, res, next) => {
+  if (req.path === '/health' || req.path === '/api/health') {
+    return next();
+  }
+  try {
+    await connectDB();
+    next();
+  } catch (err: any) {
+    logger.error({ err }, 'Database connection error in middleware');
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'DB_CONNECTION_ERROR',
+        message: `Database connection error: ${err.message || 'Failed to connect to MongoDB'}. In MongoDB Atlas -> Network Access, add IP Address 0.0.0.0/0 (Allow Access from Anywhere).`,
+      },
+    });
+  }
 });
 
 // API Routes
