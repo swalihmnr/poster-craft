@@ -73,7 +73,7 @@ app.use(
 );
 
 // Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
+app.get(['/health', '/api/health', '/api/v1/health'], (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -83,7 +83,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // Ensure DB connection for API routes
 app.use(async (req, res, next) => {
-  if (req.path === '/health' || req.path === '/api/health') {
+  if (req.path.endsWith('/health') || req.url.endsWith('/health')) {
     return next();
   }
   try {

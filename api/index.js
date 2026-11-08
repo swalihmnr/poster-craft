@@ -153973,7 +153973,7 @@ app.use(
     }
   })
 );
-app.get("/health", (_req, res) => {
+app.get(["/health", "/api/health", "/api/v1/health"], (_req, res) => {
   res.status(200).json({
     status: "ok",
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
@@ -153981,7 +153981,7 @@ app.get("/health", (_req, res) => {
   });
 });
 app.use(async (req, res, next) => {
-  if (req.path === "/health" || req.path === "/api/health") {
+  if (req.path.endsWith("/health") || req.url.endsWith("/health")) {
     return next();
   }
   try {
@@ -154967,3 +154967,4 @@ lodash/lodash.js:
    * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
    *)
 */
+module.exports = handler; module.exports.default = handler;
