@@ -261,44 +261,60 @@ export const api = {
    * 3. Record the result in our backend (saves to MongoDB)
    */
   uploadAsset: async (file: File, type: 'psd' | 'frame' | 'photo' | 'logo' | 'background' = 'photo'): Promise<Asset> => {
-    // Step 1: get signature from our backend
-    const sig = await request<{ signature: string; timestamp: number; apiKey: string; cloudName: string }>(
-      '/assets/upload-signature?folder=poster_saas',
-      { method: 'POST' }
-    );
-    // Step 2: upload directly to Cloudinary
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('api_key', sig.apiKey);
-    formData.append('timestamp', String(sig.timestamp));
-    formData.append('signature', sig.signature);
-    formData.append('folder', 'poster_saas');
+    try {
+      // Step 1: Check if Cloudinary signed upload is configured
+      const sig = await request<{ configured?: boolean; signature?: string; timestamp?: number; apiKey?: string; cloudName?: string }>(
+        '/assets/upload-signature?folder=poster_saas',
+        { method: 'POST' }
+      );
 
-    const cloudRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`,
-      { method: 'POST', body: formData }
-    );
-    if (!cloudRes.ok) {
-      const err = await cloudRes.json().catch(() => ({}));
-      throw new Error((err as any)?.error?.message || 'Cloudinary upload failed');
+      if (sig && sig.configured !== false && sig.cloudName && sig.apiKey && sig.signature && sig.timestamp) {
+        // Step 2: upload directly to Cloudinary
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', sig.apiKey);
+        formData.append('timestamp', String(sig.timestamp));
+        formData.append('signature', sig.signature);
+        formData.append('folder', 'poster_saas');
+
+        const cloudRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`,
+          { method: 'POST', body: formData }
+        );
+        if (!cloudRes.ok) {
+          const err = await cloudRes.json().catch(() => ({}));
+          throw new Error((err as any)?.error?.message || 'Cloudinary upload failed');
+        }
+        const cloudData = await cloudRes.json() as {
+          secure_url: string; public_id: string;
+          width?: number; height?: number; format?: string; bytes?: number;
+        };
+
+        // Step 3: record the result in our backend
+        return await request<Asset>('/assets/record', {
+          method: 'POST',
+          body: JSON.stringify({
+            url: cloudData.secure_url,
+            publicId: cloudData.public_id,
+            width: cloudData.width,
+            height: cloudData.height,
+            format: cloudData.format,
+            size: cloudData.bytes,
+            type,
+          }),
+        });
+      }
+    } catch (err: any) {
+      console.warn('Direct Cloudinary upload unavailable or unconfigured, falling back to local server upload', err);
     }
-    const cloudData = await cloudRes.json() as {
-      secure_url: string; public_id: string;
-      width?: number; height?: number; format?: string; bytes?: number;
-    };
 
-    // Step 3: record the result in our backend
-    return request<Asset>('/assets/record', {
+    // Direct backend upload fallback (works with local storage provider without Cloudinary)
+    const localFormData = new FormData();
+    localFormData.append('file', file);
+    localFormData.append('type', type);
+    return await request<Asset>('/assets/upload', {
       method: 'POST',
-      body: JSON.stringify({
-        url: cloudData.secure_url,
-        publicId: cloudData.public_id,
-        width: cloudData.width,
-        height: cloudData.height,
-        format: cloudData.format,
-        size: cloudData.bytes,
-        type,
-      }),
+      body: localFormData,
     });
   },
 

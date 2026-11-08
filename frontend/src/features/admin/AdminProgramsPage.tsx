@@ -19,7 +19,10 @@ import {
   ExternalLink,
   Share2,
   Check,
+  QrCode,
 } from 'lucide-react';
+import { QRCodeModal } from '../../components/ui/QRCodeModal';
+import { getPublicBaseUrl } from '../../config/appConfig';
 
 export const AdminProgramsPage: React.FC = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -38,8 +41,9 @@ export const AdminProgramsPage: React.FC = () => {
   const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('draft');
   const [isSaving, setIsSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [qrModal, setQrModal] = useState<{ isOpen: boolean; url: string; title: string } | null>(null);
 
-  const handleCopyLink = async (prog: Program) => {
+  const getProgramUrl = async (prog: Program): Promise<string> => {
     let token = prog.publicToken;
     if (!token) {
       try {
@@ -50,13 +54,26 @@ export const AdminProgramsPage: React.FC = () => {
         console.error('Failed to generate public link', err);
       }
     }
-    const url = token
-      ? `${window.location.origin}/p/${token}`
-      : `${window.location.origin}/create/${prog._id}`;
+    const baseUrl = getPublicBaseUrl();
+    return token
+      ? `${baseUrl}/p/${token}`
+      : `${baseUrl}/create/${prog._id}`;
+  };
 
+  const handleCopyLink = async (prog: Program) => {
+    const url = await getProgramUrl(prog);
     navigator.clipboard.writeText(url);
     setCopiedId(prog._id);
     setTimeout(() => setCopiedId(null), 2500);
+  };
+
+  const handleOpenQrModal = async (prog: Program) => {
+    const url = await getProgramUrl(prog);
+    setQrModal({
+      isOpen: true,
+      url,
+      title: prog.name,
+    });
   };
 
   useEffect(() => {
@@ -260,6 +277,14 @@ export const AdminProgramsPage: React.FC = () => {
                           </>
                         )}
                       </button>
+                      <button
+                        onClick={() => handleOpenQrModal(prog)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/15 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 transition-all"
+                        title="Show & Download QR Code for making posts"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>QR Code</span>
+                      </button>
                       <a
                         href={prog.publicToken ? `/p/${prog.publicToken}` : `/create/${prog._id}`}
                         target="_blank"
@@ -367,6 +392,16 @@ export const AdminProgramsPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {qrModal && (
+        <QRCodeModal
+          isOpen={qrModal.isOpen}
+          onClose={() => setQrModal(null)}
+          url={qrModal.url}
+          title={qrModal.title}
+          subtitle="Scan this QR code with any smartphone to open the poster maker directly and create your customized post."
+        />
       )}
     </div>
   );

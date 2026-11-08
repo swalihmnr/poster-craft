@@ -19,7 +19,10 @@ import {
   CheckCircle2,
   Sliders,
   Image as ImageIcon,
+  QrCode,
 } from 'lucide-react';
+import { QRCodeModal } from '../../components/ui/QRCodeModal';
+import { getPublicBaseUrl } from '../../config/appConfig';
 
 export const PosterCreatorPage: React.FC = () => {
   const { programId, token } = useParams<{ programId?: string; token?: string }>();
@@ -29,6 +32,7 @@ export const PosterCreatorPage: React.FC = () => {
   const [program, setProgram] = useState<Program | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   // User input state
   const [name, setName] = useState('');
@@ -228,7 +232,7 @@ export const PosterCreatorPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back Button & Title */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/programs')}
@@ -241,6 +245,16 @@ export const PosterCreatorPage: React.FC = () => {
             <p className="text-xs text-slate-400">Personalize your custom poster badge</p>
           </div>
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsQrModalOpen(true)}
+          leftIcon={<QrCode className="w-4 h-4 text-indigo-400" />}
+          className="text-xs"
+        >
+          Share QR Code
+        </Button>
       </div>
 
       {/* Main Two-Column Layout */}
@@ -470,6 +484,14 @@ export const PosterCreatorPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <QRCodeModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        url={`${getPublicBaseUrl()}${window.location.pathname}${window.location.search}`}
+        title={program.name}
+        subtitle="Scan with your phone camera to open this poster creator and upload photos directly from your phone gallery."
+      />
     </div>
   );
 };

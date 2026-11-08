@@ -7,14 +7,41 @@ const assetService = new AssetService();
 
 export class AssetController {
   /**
+   * Direct backend upload fallback (used for LocalStorage or direct file upload)
+   */
+  static async upload(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
+      }
+
+      const type = (req.body.type as any) || 'photo';
+      const asset = await assetService.uploadAsset(
+        req.file.buffer,
+        req.file.originalname,
+        req.user!.userId,
+        type
+      );
+
+      return sendSuccess(res, asset, 201, 'Asset uploaded successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Step 1 of direct Cloudinary upload:
    * Returns a signed signature so the browser can upload directly to Cloudinary.
+   * If Cloudinary is not configured, returns configured: false so client can fallback.
    */
   static async getSignature(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const folder = (req.query.folder as string) || 'poster_saas';
       const signatureInfo = await assetService.getUploadSignature(folder);
-      return sendSuccess(res, signatureInfo);
+      if (!signatureInfo) {
+        return sendSuccess(res, { configured: false });
+      }
+      return sendSuccess(res, { configured: true, ...signatureInfo });
     } catch (error) {
       next(error);
     }

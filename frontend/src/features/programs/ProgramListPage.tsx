@@ -4,12 +4,15 @@ import { api } from '../../services/api';
 import { Program } from '../../types';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { Search, Sparkles, Calendar, ArrowRight, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Search, Sparkles, Calendar, ArrowRight, Loader2, Image as ImageIcon, QrCode } from 'lucide-react';
+import { QRCodeModal } from '../../components/ui/QRCodeModal';
+import { getPublicBaseUrl } from '../../config/appConfig';
 
 export const ProgramListPage: React.FC = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [qrModal, setQrModal] = useState<{ isOpen: boolean; url: string; title: string } | null>(null);
 
   useEffect(() => {
     fetchPrograms();
@@ -98,15 +101,40 @@ export const ProgramListPage: React.FC = () => {
                   Canvas: <span className="font-semibold text-slate-300">{program.templateId?.width || 1080}×{program.templateId?.height || 1350}</span>
                 </div>
 
-                <Link to={`/create/${program._id}`}>
-                  <Button variant="primary" size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>
-                    Create Poster
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const baseUrl = getPublicBaseUrl();
+                      const url = program.publicToken
+                        ? `${baseUrl}/p/${program.publicToken}`
+                        : `${baseUrl}/create/${program._id}`;
+                      setQrModal({ isOpen: true, url, title: program.name });
+                    }}
+                    className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors"
+                    title="Get QR code or share link"
+                  >
+                    <QrCode className="w-4 h-4 text-indigo-400" />
+                  </button>
+                  <Link to={`/create/${program._id}`}>
+                    <Button variant="primary" size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                      Create Poster
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {qrModal && (
+        <QRCodeModal
+          isOpen={qrModal.isOpen}
+          onClose={() => setQrModal(null)}
+          url={qrModal.url}
+          title={qrModal.title}
+          subtitle="Scan with your phone to start creating and personalizing your post."
+        />
       )}
     </div>
   );

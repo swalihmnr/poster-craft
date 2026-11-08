@@ -1,10 +1,30 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { AssetController } from './asset.controller.js';
 import { requireAuth } from '../../middleware/auth.js';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (_req, file, cb) => {
+    const isSupported =
+      file.mimetype.startsWith('image/') ||
+      file.mimetype.match(/(photoshop|adobe|vnd\.adobe)/i) ||
+      file.originalname.match(/\.(psd|png|jpg|jpeg|webp|svg|tiff|bmp)$/i);
+
+    if (isSupported) {
+      cb(null, true);
+    } else {
+      cb(new Error('Allowed file formats: PSD, PNG, JPEG, WebP, SVG, TIFF, BMP'));
+    }
+  },
+});
 
 const router = Router();
 
 router.use(requireAuth);
+// Direct backend upload fallback (used for LocalStorage or when Cloudinary is not configured)
+router.post('/upload', upload.single('file'), AssetController.upload);
 // Step 1: get a signed upload token — browser uploads directly to Cloudinary
 router.post('/upload-signature', AssetController.getSignature);
 // Step 2: save the Cloudinary result (url, publicId, etc.) returned by the browser

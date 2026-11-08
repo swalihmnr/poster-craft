@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import fs from 'fs';
+import path from 'path';
 import { env } from './config/env.js';
 import { globalRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -30,6 +32,7 @@ const allowedOrigins = new Set(
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:3000',
+    'https://poster-craft-phi.vercel.app',
   ].filter(Boolean)
 );
 
@@ -52,10 +55,20 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// NOTE: Static /uploads serving is intentionally removed.
-// In production (Vercel), all files are stored on Cloudinary — no local disk.
-// In local development, files are served by Vite's proxy to localhost:5000.
-// If you need local static serving during dev, run: npx serve ./uploads
+// Serve static uploaded files with CORS headers (for local storage provider)
+const uploadDirPath = path.resolve(process.cwd(), env.UPLOAD_DIR || 'uploads');
+if (!fs.existsSync(uploadDirPath)) {
+  fs.mkdirSync(uploadDirPath, { recursive: true });
+}
+app.use(
+  '/uploads',
+  express.static(uploadDirPath, {
+    setHeaders: (res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  })
+);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {

@@ -32,11 +32,31 @@ export class AssetService {
     });
   }
 
+  async uploadAsset(
+    fileBuffer: Buffer,
+    originalname: string,
+    ownerId: string,
+    type: 'frame' | 'photo' | 'logo' | 'background' | 'psd' = 'photo'
+  ) {
+    const uploadRes = await storageService.uploadBuffer(fileBuffer, originalname, type);
+    return this.assetRepo.create({
+      ownerId: ownerId as any,
+      type: type as any,
+      provider: uploadRes.provider,
+      url: uploadRes.url,
+      publicId: uploadRes.publicId,
+      width: uploadRes.width,
+      height: uploadRes.height,
+      format: uploadRes.format,
+      size: uploadRes.size,
+    });
+  }
+
   async getUploadSignature(folder = 'poster_saas') {
     if (storageService.getUploadSignature) {
       return storageService.getUploadSignature(folder);
     }
-    throw ApiError.badRequest('Signed upload not available — Cloudinary credentials are not configured');
+    return null;
   }
   
 
