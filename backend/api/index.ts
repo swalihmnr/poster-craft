@@ -8,7 +8,7 @@ import { connectDB } from '../src/config/database.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Allow health check to succeed even before DB connects
-  if (req.url === '/health' || req.url === '/api/health') {
+  if (!req.url || req.url === '/health' || req.url.endsWith('/health')) {
     return app(req, res);
   }
 
